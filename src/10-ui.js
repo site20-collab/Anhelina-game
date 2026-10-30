@@ -47,6 +47,10 @@ function setHotbar(list) {
   hotbar = list;
   const el = $('hotbar');
   el.textContent = '';
+  const tog = document.createElement('button');
+  tog.className = 'inv-toggle';
+  tog.addEventListener('click', () => setInventory(!invOpen));
+  el.appendChild(tog);
   slots = list.map((b, i) => {
     const btn = document.createElement('button');
     btn.className = 'slot'; btn.title = BLOCKS[b].name; btn.setAttribute('aria-label', BLOCKS[b].name);
@@ -54,11 +58,21 @@ function setHotbar(list) {
     c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16);
     const num = document.createElement('span'); num.className = 'num'; num.textContent = i < 10 ? (i + 1) % 10 : '';
     btn.append(c, num);
-    btn.addEventListener('click', () => { select(i); setMode(true); canvas.focus({ preventScroll: true }); });
+    btn.addEventListener('click', () => { if (!invOpen) { setInventory(true); return; } select(i); setMode(true); canvas.focus({ preventScroll: true }); });
     el.appendChild(btn);
     return btn;
   });
   select(Math.min(selected, list.length - 1), true);
+  setInventory(invOpen, true);
+}
+let invOpen = true;
+function setInventory(open, quiet) {
+  invOpen = open;
+  const el = $('hotbar'), tog = el.querySelector('.inv-toggle');
+  el.classList.toggle('collapsed', !open);
+  tog.textContent = open ? '‹' : 'Блоки ›';
+  tog.setAttribute('aria-label', open ? 'Сховати блоки' : 'Показати блоки');
+  if (!quiet) scheduleSave();
 }
 function select(i, quiet) {
   selected = i;
@@ -165,6 +179,7 @@ addEventListener('keydown', e => {
   const m = e.code.match(/^Digit(\d)$/);
   if (m) { select(Math.min(hotbar.length - 1, (+m[1] + 9) % 10)); setMode(true); }
   if (e.code === 'KeyQ' || e.code === 'KeyE') setMode(!building);
+  if (e.code === 'KeyB' && !e.repeat) setInventory(!invOpen);
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') wantJump = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; wantJump = false; arena.firing = false; });
@@ -279,7 +294,7 @@ let editsByDim = [{}, {}], saveT = 0;
 function save() {
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn }));
+      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -294,6 +309,7 @@ function load() {
     if (s.o) Object.assign(outfit, s.o);
     art.level = s.art || 0; race.best = s.race || 0; arena.best = s.arena || 0;
     if (s.view === 'fp') view = 'fp';
+    if (s.inv === false) invOpen = false;
     if (s.sound === false) { soundOn = false; $('soundBtn').textContent = 'Тихо'; }
   } catch (e) {}
 }

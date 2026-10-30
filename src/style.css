@@ -42,13 +42,12 @@ body:not([data-mode="explore"]) .explore-only{display:none!important}
 body[data-mode="explore"] .game-only{display:none!important}
 body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool{display:none!important}
 
-.game-hud{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 76px);z-index:5;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;pointer-events:none}
-body.touch .game-hud{top:calc(env(safe-area-inset-top,0px) + 122px)}
-.game-hud .pill{background:var(--panel);border-radius:12px;padding:6px 12px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 var(--shade);white-space:nowrap}
+.game-hud{display:flex;flex-wrap:wrap;gap:4px;max-width:min(300px,44vw);pointer-events:none}
+.game-hud .pill{background:var(--panel);border-radius:10px;padding:3px 9px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--shade);white-space:nowrap}
 .game-hud .pill.hp{color:var(--pink);letter-spacing:.08em}
-.game-hud button{pointer-events:auto;border:0;border-radius:12px;padding:8px 12px;min-height:40px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer;box-shadow:0 3px 0 var(--shade)}
+.game-hud button{pointer-events:auto;border:0;border-radius:10px;padding:4px 10px;min-height:30px;font-size:13px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer;box-shadow:0 2px 0 var(--shade)}
 
-.big-text{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);z-index:7;font-family:var(--display);font-weight:700;font-size:clamp(40px,12vw,96px);color:#fff;
+.big-text{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);z-index:7;font-family:var(--display);font-weight:700;font-size:clamp(30px,min(11vw,15vh),96px);color:#fff;
   text-shadow:0 5px 0 var(--pink),0 10px 24px rgba(43,33,64,.35);opacity:0;transition:opacity .2s,transform .25s;pointer-events:none;text-align:center;white-space:nowrap}
 .big-text.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:4;pointer-events:none}
@@ -134,7 +133,29 @@ body.touch .desk-only{display:none}
 }
 @media (max-width:420px){.slot{width:40px;height:40px}.badge .name{font-size:14px}.tool{padding:8px 10px}}
 @media (prefers-reduced-motion:reduce){.toast,.blockname,.fade,.big-text,.compass .arrow{transition:none}}
-body[data-mode="art"] .game-hud{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 body[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 176px)}
-body.touch[data-mode="art"] .game-hud{top:calc(env(safe-area-inset-top,0px) + 122px);bottom:auto}
 body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 78px)}
+
+/* inventory that folds away to one block */
+.inv-toggle{flex:none;align-self:stretch;min-width:34px;border:0;border-radius:10px;background:rgba(255,255,255,.22);color:#fff;font-weight:800;font-size:14px;cursor:pointer;padding:0 8px}
+.hotbar.collapsed .slot:not(.sel){display:none}
+.hotbar.collapsed{padding:4px}
+/* short screens, e.g. a phone held sideways: smaller controls so the game stays visible */
+@media (max-height:520px){
+  .hud-top{padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+  .badge{padding:5px 10px;border-radius:12px}
+  .badge .name{font-size:13px}
+  .stats{font-size:12px}
+  .biome{font-size:11px}
+  .tool{min-height:34px;padding:6px 10px;font-size:13px;border-radius:11px}
+  .compass{padding:3px 9px;font-size:12px}
+  .slot{width:36px;height:36px;border-width:2px;padding:2px}
+  .hotbar{bottom:calc(env(safe-area-inset-bottom,0px) + 6px);padding:4px}
+  .joy-zone{height:62vh}
+  .joy{width:104px;height:104px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
+  .knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+  .jump{width:70px;height:70px;font-size:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
+  .shoot{width:78px;height:78px;font-size:14px;right:calc(env(safe-area-inset-right,0px) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
+  .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
+  .toast{font-size:15px;padding:8px 14px}
+}

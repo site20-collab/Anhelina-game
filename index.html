@@ -52,13 +52,12 @@ body:not([data-mode="explore"]) .explore-only{display:none!important}
 body[data-mode="explore"] .game-only{display:none!important}
 body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool{display:none!important}
 
-.game-hud{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 76px);z-index:5;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;pointer-events:none}
-body.touch .game-hud{top:calc(env(safe-area-inset-top,0px) + 122px)}
-.game-hud .pill{background:var(--panel);border-radius:12px;padding:6px 12px;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;box-shadow:0 3px 0 var(--shade);white-space:nowrap}
+.game-hud{display:flex;flex-wrap:wrap;gap:4px;max-width:min(300px,44vw);pointer-events:none}
+.game-hud .pill{background:var(--panel);border-radius:10px;padding:3px 9px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--shade);white-space:nowrap}
 .game-hud .pill.hp{color:var(--pink);letter-spacing:.08em}
-.game-hud button{pointer-events:auto;border:0;border-radius:12px;padding:8px 12px;min-height:40px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer;box-shadow:0 3px 0 var(--shade)}
+.game-hud button{pointer-events:auto;border:0;border-radius:10px;padding:4px 10px;min-height:30px;font-size:13px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer;box-shadow:0 2px 0 var(--shade)}
 
-.big-text{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);z-index:7;font-family:var(--display);font-weight:700;font-size:clamp(40px,12vw,96px);color:#fff;
+.big-text{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);z-index:7;font-family:var(--display);font-weight:700;font-size:clamp(30px,min(11vw,15vh),96px);color:#fff;
   text-shadow:0 5px 0 var(--pink),0 10px 24px rgba(43,33,64,.35);opacity:0;transition:opacity .2s,transform .25s;pointer-events:none;text-align:center;white-space:nowrap}
 .big-text.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .cross{position:fixed;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;z-index:4;pointer-events:none}
@@ -144,10 +143,32 @@ body.touch .desk-only{display:none}
 }
 @media (max-width:420px){.slot{width:40px;height:40px}.badge .name{font-size:14px}.tool{padding:8px 10px}}
 @media (prefers-reduced-motion:reduce){.toast,.blockname,.fade,.big-text,.compass .arrow{transition:none}}
-body[data-mode="art"] .game-hud{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px)}
 body[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 176px)}
-body.touch[data-mode="art"] .game-hud{top:calc(env(safe-area-inset-top,0px) + 122px);bottom:auto}
 body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 78px)}
+
+/* inventory that folds away to one block */
+.inv-toggle{flex:none;align-self:stretch;min-width:34px;border:0;border-radius:10px;background:rgba(255,255,255,.22);color:#fff;font-weight:800;font-size:14px;cursor:pointer;padding:0 8px}
+.hotbar.collapsed .slot:not(.sel){display:none}
+.hotbar.collapsed{padding:4px}
+/* short screens, e.g. a phone held sideways: smaller controls so the game stays visible */
+@media (max-height:520px){
+  .hud-top{padding-top:calc(env(safe-area-inset-top,0px) + 8px)}
+  .badge{padding:5px 10px;border-radius:12px}
+  .badge .name{font-size:13px}
+  .stats{font-size:12px}
+  .biome{font-size:11px}
+  .tool{min-height:34px;padding:6px 10px;font-size:13px;border-radius:11px}
+  .compass{padding:3px 9px;font-size:12px}
+  .slot{width:36px;height:36px;border-width:2px;padding:2px}
+  .hotbar{bottom:calc(env(safe-area-inset-bottom,0px) + 6px);padding:4px}
+  .joy-zone{height:62vh}
+  .joy{width:104px;height:104px;bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
+  .knob{width:46px;height:46px;margin:-23px 0 0 -23px}
+  .jump{width:70px;height:70px;font-size:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
+  .shoot{width:78px;height:78px;font-size:14px;right:calc(env(safe-area-inset-right,0px) + 100px);bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
+  .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
+  .toast{font-size:15px;padding:8px 14px}
+}
 </style>
 </head>
 <body>
@@ -160,6 +181,7 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
       <span class="stats explore-only"><span class="h" id="hearts">♥ 0 / 5</span><button class="fbtn" id="friends" aria-label="Мої друзі">Друзі: 0</button></span>
       <span class="biome" id="biome">Луки</span>
     </div>
+    <div class="game-hud" id="gameHud" hidden></div>
     <div class="compass" id="compass" hidden><span class="arrow" id="compassArrow">▲</span><span id="compassText"></span></div>
   </div>
   <div class="tools">
@@ -171,7 +193,6 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
     <button id="helpBtn" class="tool" aria-label="Як грати">?</button>
   </div>
 </div>
-<div class="game-hud" id="gameHud" hidden></div>
 <div class="big-text" id="bigText"></div>
 <div class="cross" id="cross" hidden></div>
 <div class="hurt" id="hurt"></div>
@@ -223,7 +244,7 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
       <li><b>Мишка</b>тягни, щоб крутити камеру, коліщатко наближає</li>
       <li><b>Клік</b>ламати або будувати, правий клік робить навпаки</li>
       <li><b>V</b>вид від першої особи або ззаду</li>
-      <li><b>1 … 0</b>вибрати блок, Q перемикає режим</li>
+      <li><b>1 … 0</b>вибрати блок, Q перемикає режим, B ховає блоки</li>
     </ul>
     <ul class="keys touch-only">
       <li><b>Ліва частина</b>торкнись і веди пальцем, щоб ходити</li>
@@ -2557,6 +2578,10 @@ function setHotbar(list) {
   hotbar = list;
   const el = $('hotbar');
   el.textContent = '';
+  const tog = document.createElement('button');
+  tog.className = 'inv-toggle';
+  tog.addEventListener('click', () => setInventory(!invOpen));
+  el.appendChild(tog);
   slots = list.map((b, i) => {
     const btn = document.createElement('button');
     btn.className = 'slot'; btn.title = BLOCKS[b].name; btn.setAttribute('aria-label', BLOCKS[b].name);
@@ -2564,11 +2589,21 @@ function setHotbar(list) {
     c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16);
     const num = document.createElement('span'); num.className = 'num'; num.textContent = i < 10 ? (i + 1) % 10 : '';
     btn.append(c, num);
-    btn.addEventListener('click', () => { select(i); setMode(true); canvas.focus({ preventScroll: true }); });
+    btn.addEventListener('click', () => { if (!invOpen) { setInventory(true); return; } select(i); setMode(true); canvas.focus({ preventScroll: true }); });
     el.appendChild(btn);
     return btn;
   });
   select(Math.min(selected, list.length - 1), true);
+  setInventory(invOpen, true);
+}
+let invOpen = true;
+function setInventory(open, quiet) {
+  invOpen = open;
+  const el = $('hotbar'), tog = el.querySelector('.inv-toggle');
+  el.classList.toggle('collapsed', !open);
+  tog.textContent = open ? '‹' : 'Блоки ›';
+  tog.setAttribute('aria-label', open ? 'Сховати блоки' : 'Показати блоки');
+  if (!quiet) scheduleSave();
 }
 function select(i, quiet) {
   selected = i;
@@ -2675,6 +2710,7 @@ addEventListener('keydown', e => {
   const m = e.code.match(/^Digit(\d)$/);
   if (m) { select(Math.min(hotbar.length - 1, (+m[1] + 9) % 10)); setMode(true); }
   if (e.code === 'KeyQ' || e.code === 'KeyE') setMode(!building);
+  if (e.code === 'KeyB' && !e.repeat) setInventory(!invOpen);
 });
 addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') wantJump = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; wantJump = false; arena.firing = false; });
@@ -2789,7 +2825,7 @@ let editsByDim = [{}, {}], saveT = 0;
 function save() {
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn }));
+      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -2804,6 +2840,7 @@ function load() {
     if (s.o) Object.assign(outfit, s.o);
     art.level = s.art || 0; race.best = s.race || 0; arena.best = s.arena || 0;
     if (s.view === 'fp') view = 'fp';
+    if (s.inv === false) invOpen = false;
     if (s.sound === false) { soundOn = false; $('soundBtn').textContent = 'Тихо'; }
   } catch (e) {}
 }
