@@ -1,0 +1,87 @@
+<canvas id="game" tabindex="0"></canvas>
+
+<div class="hud-top">
+  <div class="hud-left">
+    <div class="badge">
+      <span class="name">Світ Ангеліни</span>
+      <span class="stats explore-only"><span class="h" id="hearts">♥ 0 / 5</span><button class="fbtn" id="friends" aria-label="Мої друзі">Друзі: 0</button></span>
+      <span class="biome" id="biome">Луки</span>
+    </div>
+    <div class="compass" id="compass" hidden><span class="arrow" id="compassArrow">▲</span><span id="compassText"></span></div>
+  </div>
+  <div class="tools">
+    <button id="modeBtn" class="tool break build-tool">Ламаю</button>
+    <button id="viewBtn" class="tool">Камера</button>
+    <button id="wardrobeBtn" class="tool explore-only">Одяг</button>
+    <button id="exitBtn" class="tool exit game-only">До замку</button>
+    <button id="soundBtn" class="tool" aria-label="Звук">Звук</button>
+    <button id="helpBtn" class="tool" aria-label="Як грати">?</button>
+  </div>
+</div>
+<div class="game-hud" id="gameHud" hidden></div>
+<div class="big-text" id="bigText"></div>
+<div class="cross" id="cross" hidden></div>
+<div class="hurt" id="hurt"></div>
+<div class="blockname" id="blockName"></div>
+<div class="hotbar" id="hotbar"></div>
+<div class="joy-zone" id="joyZone"><div class="joy" id="joy"><div class="knob" id="knob"></div></div></div>
+<button class="jump" id="jumpBtn">Стриб</button>
+<button class="shoot" id="shootBtn">Стріляти</button>
+<div class="toast" id="toast"></div>
+<div class="fade" id="fade"></div>
+
+<div class="sheet" id="wardrobe" hidden>
+  <h2>Гардероб</h2>
+  <p class="sub">Вибери, у що вбрати Ангеліну. Зміни видно одразу.</p>
+  <div class="scroll" id="wardrobeList"></div>
+  <button class="play" id="wardrobeDone">Готово</button>
+</div>
+
+<div class="overlay" id="friendsPanel" hidden>
+  <div class="card">
+    <h1>Друзі <span>Ангеліни</span></h1>
+    <p class="fempty" id="fEmpty">Поки що друзів немає. Торкнись тваринки, щоб подружитися.</p>
+    <ul class="flist" id="fList"></ul>
+    <div class="actions">
+      <button class="play" id="fClose">Грати далі</button>
+      <button class="ghost" id="fAll">Відпустити всіх</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="result" hidden>
+  <div class="card">
+    <h1 id="resTitle"></h1>
+    <p id="resText"></p>
+    <div class="actions">
+      <button class="play" id="resAgain">Ще раз</button>
+      <button class="ghost" id="resExit">До замку</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="card">
+    <h1>Привіт, <span>Ангеліно!</span></h1>
+    <p>Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
+    <ul class="keys desk-only">
+      <li><b>W A S D</b>ходити, Shift бігти</li>
+      <li><b>Пробіл</b>стрибати, у воді пливти вгору</li>
+      <li><b>Мишка</b>тягни, щоб крутити камеру, коліщатко наближає</li>
+      <li><b>Клік</b>ламати або будувати, правий клік робить навпаки</li>
+      <li><b>V</b>вид від першої особи або ззаду</li>
+      <li><b>1 … 0</b>вибрати блок, Q перемикає режим</li>
+    </ul>
+    <ul class="keys touch-only">
+      <li><b>Ліва частина</b>торкнись і веди пальцем, щоб ходити</li>
+      <li><b>Стриб</b>стрибати, у воді пливти вгору</li>
+      <li><b>Права частина</b>проведи пальцем, щоб крутити камеру, двома пальцями наближай</li>
+      <li><b>Торкнись блока</b>ламати або будувати</li>
+      <li><b>Торкнись тваринки</b>подружитися</li>
+    </ul>
+    <div class="actions">
+      <button class="play" id="playBtn" disabled>Завантаження…</button>
+      <button class="ghost" id="resetBtn">Новий світ</button>
+    </div>
+  </div>
+</div>
