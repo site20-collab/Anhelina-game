@@ -113,8 +113,21 @@ function leaveGame(d) {
 }
 
 modeBtn.addEventListener('click', () => { setMode(!building); toast(building ? 'Будуємо!' : 'Ламаємо!', 900); });
-$('viewBtn').addEventListener('click', () => { setView(view === 'fp' ? 'tp' : 'fp'); toast(view === 'fp' ? 'Очима Ангеліни' : 'Камера ззаду', 1000); });
-$('soundBtn').addEventListener('click', e => { soundOn = !soundOn; e.currentTarget.textContent = soundOn ? 'Звук' : 'Тихо'; scheduleSave(); });
+$('viewBtn').addEventListener('click', () => { setView(view === 'fp' ? 'tp' : 'fp'); toast(view === 'fp' ? 'Очима Ангеліни' : 'Камера ззаду', 1000); menuLabels(); });
+const menuEl = $('menu'), menuBtn = $('menuBtn');
+function menuLabels() {
+  $('viewBtn').textContent = view === 'fp' ? 'Камера: очима Ангеліни' : 'Камера: ззаду';
+  $('soundBtn').textContent = soundOn ? 'Звук: увімкнено' : 'Звук: вимкнено';
+}
+function setMenu(open) {
+  menuEl.hidden = !open;
+  menuBtn.setAttribute('aria-expanded', String(open));
+  if (open) menuLabels();
+}
+menuBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(menuEl.hidden); });
+menuEl.addEventListener('click', e => { if (e.target.closest('.mitem')) setMenu(false); });
+addEventListener('pointerdown', e => { if (!menuEl.hidden && !e.target.closest('.tools')) setMenu(false); });
+$('soundBtn').addEventListener('click', () => { soundOn = !soundOn; menuLabels(); toast(soundOn ? 'Звук увімкнено' : 'Звук вимкнено', 900); scheduleSave(); });
 $('helpBtn').addEventListener('click', () => { overlay.hidden = false; playing = false; arena.firing = false; if (document.pointerLockElement) document.exitPointerLock(); });
 $('wardrobeBtn').addEventListener('click', openWardrobe);
 $('wardrobeDone').addEventListener('click', closeWardrobe);
@@ -310,6 +323,6 @@ function load() {
     art.level = s.art || 0; race.best = s.race || 0; arena.best = s.arena || 0;
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
-    if (s.sound === false) { soundOn = false; $('soundBtn').textContent = 'Тихо'; }
+    if (s.sound === false) soundOn = false;
   } catch (e) {}
 }

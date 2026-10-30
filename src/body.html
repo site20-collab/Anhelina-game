@@ -12,11 +12,14 @@
   </div>
   <div class="tools">
     <button id="modeBtn" class="tool break build-tool">Ламаю</button>
-    <button id="viewBtn" class="tool">Камера</button>
-    <button id="wardrobeBtn" class="tool explore-only">Одяг</button>
-    <button id="exitBtn" class="tool exit game-only">До замку</button>
-    <button id="soundBtn" class="tool" aria-label="Звук">Звук</button>
-    <button id="helpBtn" class="tool" aria-label="Як грати">?</button>
+    <button id="menuBtn" class="tool dots" aria-label="Меню" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
+    <div class="menu" id="menu" hidden>
+      <button id="exitBtn" class="mitem exit game-only">До замку</button>
+      <button id="viewBtn" class="mitem">Камера: ззаду</button>
+      <button id="wardrobeBtn" class="mitem explore-only">Одяг</button>
+      <button id="soundBtn" class="mitem">Звук: увімкнено</button>
+      <button id="helpBtn" class="mitem">Як грати</button>
+    </div>
   </div>
 </div>
 <div class="big-text" id="bigText"></div>

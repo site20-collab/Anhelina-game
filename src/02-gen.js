@@ -120,26 +120,23 @@ function generateMain() {
 }
 
 // ---------- hearts: many, easy to find, only 5 needed ----------
-const HEART_TOTAL = 40, HEART_NEED = 5;
+const HEART_TOTAL = 15, HEART_NEED = 5;
 let hearts = [];
 const collected = new Set();
-const beamGeo = new THREE.CylinderGeometry(0.2, 0.2, 40, 6, 1, true);
-beamGeo.translate(0, 20, 0);
-const beamMat = new THREE.MeshBasicMaterial({ color: 0xff7ab8, transparent: true, opacity: 0.32, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
 function placeHearts() {
   hearts.forEach(h => { scene.remove(h.mesh); scene.remove(h.beam); });
   hearts = [];
   let k = 0;
   while (hearts.length < HEART_TOTAL && k < 40000) {
     k++;
-    const near = hearts.length < 12;
+    const near = hearts.length < 6;
     let x, z;
     if (near) {
       const a = hash(k, 1, 12) * Math.PI * 2, r = 14 + hash(k, 2, 12) * 46;
       x = Math.floor(CX + Math.cos(a) * r); z = Math.floor(CZ + Math.sin(a) * r);
     } else { x = 6 + Math.floor(hash(k, 3, 11) * (SX - 12)); z = 6 + Math.floor(hash(k, 5, 13) * (SZ - 12)); }
     if (Math.hypot(x - CX, z - CZ) < 10) continue;
-    if (hearts.some(h => Math.abs(h.x - x) + Math.abs(h.z - z) < (near ? 14 : 26))) continue;
+    if (hearts.some(h => Math.abs(h.x - x) + Math.abs(h.z - z) < (near ? 14 : 40))) continue;
     let g = topY(x, z), ok = true;
     while (g > 0) {
       const b = get(x, g - 1, z);
@@ -150,11 +147,10 @@ function placeHearts() {
     if (!ok) continue;
     const mesh = new THREE.Mesh(heartGeo, heartMat);
     mesh.position.set(x + 0.5, g + 1, z + 0.5);
-    mesh.scale.setScalar(1.25);
-    const beam = new THREE.Mesh(beamGeo, beamMat);
-    beam.position.set(x + 0.5, g, z + 0.5);
+    mesh.scale.setScalar(0.9);
+    const beam = new THREE.Object3D();
     hearts.push({ id: hearts.length, x, z, y: g + 1, mesh, beam, phase: hearts.length * 0.7 });
-    scene.add(mesh); scene.add(beam);
+    scene.add(mesh);
   }
 }
 

@@ -31,7 +31,7 @@ button:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 .biome{font-size:13px;font-weight:800;opacity:.7}
 .compass{display:flex;align-items:center;gap:8px;background:var(--panel);border-radius:14px;padding:6px 12px;font-weight:800;font-size:13px;color:var(--pink);box-shadow:0 3px 0 var(--shade)}
 .compass .arrow{display:inline-block;font-size:15px;line-height:1;transition:transform .15s linear}
-.tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;max-width:60vw}
+.tools{position:relative;display:flex;gap:6px;justify-content:flex-end;align-items:flex-start}
 .tool{border:0;border-radius:14px;padding:10px 14px;min-height:44px;background:var(--panel);font-weight:800;cursor:pointer;box-shadow:0 4px 0 var(--shade)}
 .tool:active{transform:translateY(2px);box-shadow:0 2px 0 var(--shade)}
 .tool.break{background:var(--pink);color:#fff}
@@ -159,3 +159,15 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
   .blockname{bottom:calc(env(safe-area-inset-bottom,0px) + 56px)}
   .toast{font-size:15px;padding:8px 14px}
 }
+
+/* top-right menu behind three dots */
+.tool.dots{display:flex;align-items:center;justify-content:center;gap:4px;min-width:48px}
+.tool.dots span{width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.tool.dots[aria-expanded="true"]{background:var(--ink)}
+.tool.dots[aria-expanded="true"] span{background:#fff}
+.menu{position:absolute;top:calc(100% + 8px);right:0;z-index:7;display:flex;flex-direction:column;gap:4px;min-width:190px;padding:6px;
+  background:#fff;border-radius:16px;box-shadow:0 6px 0 var(--shade),0 10px 30px rgba(43,33,64,.18)}
+.mitem{border:0;background:transparent;border-radius:11px;padding:10px 12px;min-height:42px;text-align:left;font-weight:800;font-size:15px;cursor:pointer}
+.mitem:hover{background:var(--soft)}
+.mitem.exit{background:var(--ink);color:#fff}
+@media (max-height:520px){.tool.dots{min-width:40px}.mitem{min-height:36px;padding:7px 12px;font-size:14px}}
