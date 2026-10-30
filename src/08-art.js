@@ -45,9 +45,9 @@ function updateArtHud() {
   const s = artScore();
   setGameHud([`Картина ${art.level % PICTURES.length + 1} з ${PICTURES.length}: ${PICTURES[art.level % PICTURES.length].name}`,
     `Готово ${s.good} з ${s.need}`, s.wrong ? `Зайвих ${s.wrong}` : 'Без помилок'],
-    [['Очистити', () => { paintArt(); toast('Полотно чисте', 1000); }], ['Інша картинка', () => nextArt()]]);
+    [['Очистити', () => { paintArt(); toast('Полотно чисте', 1000); netSend({ t: 'artLvl', l: art.level }); }], ['Інша картинка', () => nextArt()]]);
 }
-function nextArt() { art.level = (art.level + 1) % PICTURES.length; scheduleSave(); paintArt(); toast(PICTURES[art.level].name, 1200); }
+function nextArt(auto) { art.level = (art.level + 1) % PICTURES.length; scheduleSave(); paintArt(); toast(PICTURES[art.level].name, 1200); if (!auto) netSend({ t: 'artLvl', l: art.level }); }
 function artTap(hit, place) {
   if (place) {
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
@@ -56,6 +56,7 @@ function artTap(hit, place) {
     if (overlapsPlayer(x, y, z)) return;
     setBlock(x, y, z, hotbar[selected]);
     sfx.place();
+    netSend({ t: 'art', l: art.level, x: x - ART.x0C, y: y - ART.y0, b: hotbar[selected] });
   } else {
     if (!inCanvas(hit.x, hit.y, hit.z)) { toast('Прибирати можна тільки блоки на своїй картині'); return; }
     const b = world[I(hit.x, hit.y, hit.z)];
@@ -63,8 +64,12 @@ function artTap(hit, place) {
     setBlock(hit.x, hit.y, hit.z, 0);
     burst(hit.x, hit.y, hit.z, BLOCKS[b].c, 6);
     sfx.brk();
+    netSend({ t: 'art', l: art.level, x: hit.x - ART.x0C, y: hit.y - ART.y0, b: 0 });
   }
   updateArtHud();
+  artCheckDone();
+}
+function artCheckDone() {
   const s = artScore();
   if (!art.done && s.good === s.need && s.wrong === 0) {
     art.done = true;
@@ -74,7 +79,7 @@ function artTap(hit, place) {
     setTimeout(() => {
       if (dim !== D_ART) return;
       if (art.level === PICTURES.length - 1) toast('Ти справжня художниця! Усі картини готові', 3500);
-      nextArt();
+      nextArt(true);
     }, 2200);
   }
 }
@@ -87,5 +92,8 @@ function enterArt() {
   art.labels = [a, b];
   setMode(true);
   paintArt();
+  // friends already painting here share their picture with the newcomer
+  art.wantState = true; setTimeout(() => { art.wantState = false; }, 4000);
+  netSend({ t: 'artHi' });
 }
 function leaveArt() { art.labels.forEach(s => scene.remove(s)); art.labels = []; }

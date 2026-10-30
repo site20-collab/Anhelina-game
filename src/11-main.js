@@ -1,5 +1,5 @@
 // ---------- main loop ----------
-let biomeT = 0, curBiome = -1;
+let biomeT = 0, curBiome = -1, curVillage = null;
 function nearestHeart() {
   let best = null, bd = Infinity;
   hearts.forEach(h => {
@@ -72,6 +72,8 @@ function update(dt, now) {
   updatePortals(dt, t);
   updateNet(dt);
   if (mode === 'arena') updateArena(dt);
+  if (mode === 'hide') updateHide(dt, t);
+  if (mode === 'jump') updateJump(dt);
   updateParticles(dt);
   clouds.forEach(c => {
     c.position.x += dt * 0.6;
@@ -86,17 +88,26 @@ function update(dt, now) {
     const bx = clamp(Math.floor(camera.position.x), 0, SX - 1), bz = clamp(Math.floor(camera.position.z), 0, SZ - 1);
     const b = biomeMap[bx + bz * SX];
     if (b !== curBiome) {
-      if (curBiome !== -1 && playing && mode === 'explore') toast(BIOME_NAMES[b], 1300);
+      if (curBiome !== -1 && playing && mode === 'explore' && !curVillage) toast(BIOME_NAMES[b], 1300);
       curBiome = b; skyTarget.setHex(BIOME_SKY[b]);
     }
-    biomeEl.textContent = BIOME_NAMES[b];
+    // villages announce themselves when you walk in
+    const v = dim === D_MAIN ? villageAt(pl.p.x, pl.p.z) : null;
+    if (v !== curVillage) { curVillage = v; if (v && playing) toast(`Село ${v.name}`, 1800); }
+    biomeEl.textContent = v ? `Село ${v.name}` : BIOME_NAMES[b];
     updateCompass();
   }
   skyColor.lerp(skyTarget, Math.min(1, dt * 1.5));
-  if (underwater && mode !== 'race') { scene.background.copy(waterFog); scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
-  else { scene.background.copy(skyColor); scene.fog.color.copy(skyColor); scene.fog.near = 40; scene.fog.far = 100; }
+  const horizon = updateSky(dt, skyColor);
+  windTime.value = t;
+  waterTex.offset.set(t * 0.05, t * 0.03);
+  if (underwater && mode !== 'race') { skyDome.visible = false; scene.background = waterFog; scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
+  else { skyDome.visible = true; scene.background = null; scene.fog.color.copy(horizon); scene.fog.near = VIEW * CS * 0.42; scene.fog.far = VIEW * CS * 0.98; }
+  updateFauna(dt, t);
+  updateFurniture();
+  updateLabels();
   let hit = null;
-  if (playing && mode !== 'race' && mode !== 'arena' && !drag) {
+  if (playing && (mode === 'explore' || mode === 'art') && !drag) {
     if (locked()) { aim(innerWidth / 2, innerHeight / 2); hit = pickBlock(); }
     else if (mouse) { aim(mouse.x, mouse.y); hit = pickBlock(); }
   }
@@ -115,15 +126,15 @@ addEventListener('resize', resize);
 
 // ---------- boot ----------
 function boot() {
+  for (let d = D_CASTLE + 1; d < NDIMS; d++) freeDim(d);
   dim = D_MAIN;
   useDim(D_MAIN); generateMain(); placeHearts();
   useDim(D_CASTLE); generateCastle();
-  useDim(D_RACE); generateRace();
-  useDim(D_ART); generateArt();
-  useDim(D_ARENA); generateArena();
   useDim(D_MAIN);
   load();
-  hearts.forEach(h => { const on = !collected.has(h.id); h.mesh.visible = on; h.beam.visible = on; if (!on) { scene.remove(h.mesh); scene.remove(h.beam); } });
+  hearts.forEach(h => { const on = !collected.has(h.id); h.mesh.visible = on; if (!on) scene.remove(h.mesh); });
+  settleFurniture();
+  addPlaceLabels();
   PORTALS[0].open = collected.size >= HEART_NEED;
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
   portalLock = false;

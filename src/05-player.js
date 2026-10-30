@@ -207,6 +207,8 @@ function tapAt(cx, cy, place) {
   if (!hit) return;
   if (dim === D_ART) { artTap(hit, place); return; }
   if (dim > D_CASTLE) return;
+  if (place && typeof hotbar[selected] === 'string') { placeFurnitureByPlayer(hit, hotbar[selected].slice(2)); return; }
+  if (!place && world[I(hit.x, hit.y, hit.z)] === FURN) { breakFurniture(dim, I(hit.x, hit.y, hit.z), false); sfx.brk(); return; }
   if (place) {
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
     if (!inB(x, y, z)) return;

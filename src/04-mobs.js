@@ -139,6 +139,53 @@ function buildFlamingo() {
   const legs = [-0.07, 0.07].map(x => { const p = pivot(x, 0.84, 0, g); box(0.04, 0.82, 0.04, '#e86a9a', 0, -0.41, 0, p); box(0.1, 0.03, 0.12, '#e86a9a', 0, -0.82, 0.03, p); return p; });
   return { g, legs };
 }
+function buildPuppy(m) {
+  const g = new THREE.Group();
+  const [C, E, S] = [['#f4e3c8', '#b07a4a', '#ffffff'], ['#f7f7f7', '#2b2630', '#ffffff'], ['#c9955e', '#7a5230', '#f4e3c8']][m.id % 3];
+  box(0.3, 0.28, 0.5, C, 0, 0.34, 0, g);
+  if (m.id % 3 === 1) { box(0.1, 0.02, 0.1, E, 0.08, 0.485, 0.05, g); box(0.08, 0.02, 0.08, E, -0.06, 0.485, -0.12, g); }
+  box(0.3, 0.28, 0.28, C, 0, 0.52, 0.32, g);
+  box(0.16, 0.12, 0.12, S, 0, 0.45, 0.5, g);
+  box(0.06, 0.05, 0.03, '#1a1a1a', 0, 0.49, 0.565, g);
+  box(0.05, 0.06, 0.02, '#ff8fa8', 0, 0.39, 0.56, g);
+  box(0.08, 0.22, 0.12, E, -0.18, 0.5, 0.3, g); box(0.08, 0.22, 0.12, E, 0.18, 0.5, 0.3, g);
+  eyePair(g, 0.56, 0.465, 0.08, 0.05);
+  box(0.06, 0.06, 0.24, C, 0, 0.5, -0.32, g).rotation.x = -0.8;
+  return { g, legs: legSet(g, [[-0.09, 0.16], [0.09, 0.16], [-0.09, -0.16], [0.09, -0.16]], 0.08, 0.2, C) };
+}
+function buildPony(m) {
+  const g = new THREE.Group(), b = new THREE.Group();
+  g.add(b);
+  const [W, MANE] = [['#f7d6e8', ['#ff6fae', '#c9a8ff']], ['#c9e6ff', ['#3d7be0', '#ffffff']], ['#fff2b3', ['#ff8a1f', '#ffd23f']], ['#d9c2ff', ['#9a7bff', '#ff9fd2']]][m.id % 4];
+  box(0.45, 0.42, 0.85, W, 0, 0.85, 0, b);
+  box(0.24, 0.44, 0.26, W, 0, 1.16, 0.38, b).rotation.x = 0.35;
+  box(0.28, 0.28, 0.44, W, 0, 1.38, 0.56, b);
+  box(0.05, 0.07, 0.02, '#3a2f5c', -0.145, 1.42, 0.66, b); box(0.05, 0.07, 0.02, '#3a2f5c', 0.145, 1.42, 0.66, b);
+  box(0.06, 0.1, 0.06, W, -0.08, 1.56, 0.44, b); box(0.06, 0.1, 0.06, W, 0.08, 1.56, 0.44, b);
+  for (let i = 0; i < 5; i++) box(0.1, 0.13, 0.12, MANE[i % 2], 0, 1.52 - i * 0.12, 0.4 - i * 0.07, b);
+  for (let i = 0; i < 4; i++) box(0.11, 0.12, 0.11, MANE[i % 2], 0, 0.96 - i * 0.11, -0.47 - i * 0.04, b);
+  const legs = [[-0.15, 0.3], [0.15, 0.3], [-0.15, -0.3], [0.15, -0.3]].map(([x, z]) => {
+    const p = pivot(x, 0.66, z, b);
+    box(0.13, 0.58, 0.13, W, 0, -0.29, 0, p);
+    box(0.14, 0.08, 0.14, '#7a5230', 0, -0.62, 0, p);
+    return p;
+  });
+  b.scale.setScalar(0.8);
+  return { g, legs };
+}
+const VILLAGER_NAMES = ['Оксанка', 'Марічка', 'Тарасик', 'Петрик', 'Соломійка', 'Іванко', 'Дарка', 'Остапчик', 'Христинка', 'Богданчик', 'Зеня', 'Лукаш'];
+const VILLAGER_SAY = ['Привіт, Ангеліно!', 'Гарна сьогодні погода!', 'Заходь у гості!', 'Ти бачила мого котика?', 'У нас найсмачніші пиріжки!', 'Тут поруч є сердечко!', 'Дякую, що завітала!'];
+function buildVillager(m) {
+  const g = new THREE.Group();
+  const o = {};
+  Object.keys(WARDROBE).forEach((cat, k) => { const items = WARDROBE[cat].items; o[cat] = items[Math.floor(hash(m.id, k, 901) * items.length)].id; });
+  if (o.hat === 'bunny' || o.hat === 'cat') o.hat = 'none';
+  const parts = buildAvatar(o, D_MAIN);
+  parts.blaster.visible = false;
+  g.add(parts.body);
+  parts.body.scale.setScalar(0.95 + hash(m.id, 9, 902) * 0.2);
+  return { g, legs: parts.legs, arms: [] };
+}
 const DUCK_BREEDS = [
   { id: 'mallard', name: 'крижень', body: '#a0826d', head: '#2e7d4f', collar: '#ffffff', beak: '#f2c94c', baby: '#e6c25a' },
   { id: 'pekin', name: 'біла пекінська', body: '#f7f4ec', head: '#f7f4ec', beak: '#ff9f1c', baby: '#ffe066' },
@@ -185,6 +232,9 @@ const MOB_TYPES = {
   hedgehog: { name: 'Їжачок',     build: buildHedgehog, speed: 1.0, hw: 0.2, h: 0.4,  say: 'Пих-пих!' },
   bear:     { name: 'Ведмежа',    build: buildBear,    speed: 1.6, hw: 0.28, h: 1.1,  say: 'Ур-р-р!' },
   flamingo: { name: 'Фламінго',   build: buildFlamingo, speed: 1.3, hw: 0.2, h: 1.6,  say: 'Ґа-ґа!', swims: true },
+  puppy:    { name: 'Цуценя',     build: buildPuppy,   speed: 2.6, hw: 0.2,  h: 0.7,  say: 'Гав-гав!' },
+  pony:     { name: 'Поні',       build: buildPony,    speed: 2.2, hw: 0.28, h: 1.3,  say: 'І-го-го!' },
+  villager: { name: 'Житель',     build: buildVillager, speed: 1.3, hw: 0.28, h: 1.7, say: '' },
   duck:     { name: 'Качка',      build: m => buildDuck(m, false), speed: 1.6, hw: 0.2, h: 0.6, say: 'Кря-кря!', swims: true },
   duckling: { name: 'Каченя',     build: m => buildDuck(m, true),  speed: 2.4, hw: 0.12, h: 0.35, say: 'Пі-пі-пі!', swims: true },
 };
@@ -202,24 +252,30 @@ const PET_NAMES = {
   flamingo: ['Фламі', 'Рожевинка', 'Довгоніжка', 'Пір\'ячко'],
   duck: ['Кряка', 'Плюшка', 'Хвилька', 'Пірнайка'],
   duckling: ['Пушок', 'Жовтик', 'Кульбабка', 'Пір\'їнка', 'Крихітка', 'Сонечко'],
+  puppy: ['Бім', 'Тузик', 'Ласка', 'Плямка', 'Рекс', 'Булька'],
+  pony: ['Зорька', 'Карамелька', 'Іскра', 'Хмаринка'],
+  villager: VILLAGER_NAMES,
 };
 const SPAWN = {
-  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep'],
+  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep', 'puppy', 'pony'],
   [FOREST]: ['bunny', 'fox', 'hedgehog', 'bear'],
   [DESERT]: ['turtle', 'flamingo'],
   [SNOWY]: ['penguin', 'penguin', 'fox', 'bear', 'bunny'],
   [CANDYLAND]: ['unicorn', 'unicorn', 'piglet'],
 };
-const SPAWN_MAX = { cat: 14, bunny: 18, penguin: 14, turtle: 12, unicorn: 14, sheep: 18, piglet: 14, fox: 12, hedgehog: 12, bear: 12, flamingo: 10 };
+const SPAWN_MAX = { cat: 20, bunny: 24, penguin: 18, turtle: 16, unicorn: 18, sheep: 24, piglet: 18, fox: 16, hedgehog: 14, bear: 14, flamingo: 14, puppy: 16, pony: 14 };
 let mobs = [], mobGroups = [];
 const friends = new Set();
 const friendHeartMat = new THREE.MeshLambertMaterial({ color: 0xff6fae, emissive: 0x99204f });
+const blobGeo = new THREE.CircleGeometry(0.5, 16), blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
 function addMob(type, x, z, d = 0, extra = {}) {
   const def = MOB_TYPES[type], id = mobs.length;
   const m = Object.assign({ id, type, def, dim: d, facing: hash(id, 1, 40) * 6.28, dir: 0, timer: 0, walking: false, phase: 0, badge: null,
     nick: PET_NAMES[type][id % PET_NAMES[type].length] }, extra);
   const parts = def.build(m);
   m.g = parts.g; m.legs = parts.legs || []; m.arms = parts.arms || []; m.waddle = !!parts.waddle;
+  // a soft round shadow under every animal
+  const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; sh.scale.setScalar(def.hw * 2.6); m.g.add(sh);
   m.g.traverse(o => { o.userData.mobId = id; });
   scene.add(m.g);
   m.e = { p: new THREE.Vector3(x + .5, withDim(d, () => surfaceY(x, z)) + 0.01, z + .5), vel: new THREE.Vector3(), hw: def.hw, h: def.h, onGround: false, blocked: false, jumpV: 7.5, float: true };
@@ -243,9 +299,11 @@ function spawnMobs() {
   addMob('bunny', CX - 5, CZ + 2);
   addMob('sheep', CX + 6, CZ - 6);
   addMob('piglet', CX - 6, CZ - 4);
+  addMob('puppy', CX - 3, CZ + 6);
+  villages.forEach((v, vi) => { for (let k = 0; k < 5; k++) { const a = k * 1.25 + vi; addMob('villager', Math.round(v.x + Math.cos(a) * 6), Math.round(v.z + Math.sin(a) * 6), 0, { home: v }); } addMob(['puppy', 'cat', 'pony'][vi % 3], v.x + 3, v.z + 7); });
   const count = {};
   let k = 0;
-  while (mobs.length < 170 && k < 30000) {
+  while (mobs.length < 300 && k < 40000) {
     k++;
     const x = 3 + Math.floor(hash(k, 7, 31) * (SX - 6)), z = 3 + Math.floor(hash(k, 9, 33) * (SZ - 6));
     const bi = biomeMaps[0][x + z * SX], list = SPAWN[bi];
@@ -255,7 +313,7 @@ function spawnMobs() {
     const sy = withDim(0, () => surfaceY(x, z)), below = worlds[0][I(x, sy - 1, z)];
     if (worlds[0][I(x, sy, z)] === WATER || below === LEAVES || below === PINE || below === PINKLEAVES || below === CACTUS) continue;
     if (type === 'flamingo' && below !== SAND) continue;
-    if (mobs.some(m => Math.abs(m.e.p.x - x) + Math.abs(m.e.p.z - z) < 5)) continue;
+    if (nearVillage(x, z, 2) || mobs.some(m => Math.abs(m.e.p.x - x) + Math.abs(m.e.p.z - z) < 5)) continue;
     count[type] = (count[type] || 0) + 1;
     addMob(type, x, z, 0, { variant: bi === SNOWY ? (type === 'fox' ? 'arctic' : 'polar') : '' });
   }
@@ -288,13 +346,13 @@ function spawnDucks() {
   });
 }
 function spawnCastleMobs() {
-  [[CX - 30, CZ + 56, 'unicorn'], [CX + 32, CZ + 58, 'unicorn'], [CX - 60, CZ - 10, 'unicorn'], [CX + 60, CZ + 6, 'unicorn'],
-   [CX - 40, CZ - 40, 'sheep'], [CX + 42, CZ - 36, 'sheep'], [CX - 6, CZ + 10, 'cat'], [CX + 7, CZ + 12, 'cat'],
-   [CX + 36, CZ + 20, 'flamingo'], [CX - 36, CZ + 18, 'piglet']].forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
-  addMob('bunny', CX + 4, CZ - 5, D_CASTLE).e.p.y = KH + 1.01;
-  const mom = addMob('duck', CX + 27, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
+  [[CX - 40, CZ + 70, 'unicorn'], [CX + 42, CZ + 74, 'unicorn'], [CX - 70, CZ - 10, 'unicorn'], [CX + 70, CZ + 6, 'unicorn'], [CX - 60, CZ - 50, 'pony'], [CX + 60, CZ - 52, 'pony'],
+   [CX - 50, CZ - 60, 'sheep'], [CX + 52, CZ - 56, 'sheep'], [CX - 8, CZ + 12, 'cat'], [CX + 9, CZ + 16, 'puppy'], [CX - 15, CZ + 22, 'bunny'],
+   [CX + 48, CZ + 30, 'flamingo'], [CX - 48, CZ + 28, 'piglet']].forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
+  addMob('bunny', CX + 4, CZ - 8, D_CASTLE).e.p.y = KH + 1.01;
+  const mom = addMob('duck', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
   mom.e.p.y = KH + 0.4;
-  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 27, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 27.5, KH + 0.4, CZ + 1 + i * 0.6); }
+  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 39.5, KH + 0.4, CZ + 1 + i * 0.6); }
 }
 function bringToPlayer(m) {
   const a = Math.random() * Math.PI * 2, r = 1.5 + Math.random();
@@ -319,7 +377,11 @@ function updateMob(m, dt) {
     else if (md > 1.1 + (m.id % 4) * 0.35) { mx = ddx / md; mz = ddz / md; }
   } else {
     m.timer -= dt;
-    if (m.timer <= 0) { m.walking = Math.random() < 0.6; m.dir = Math.random() * Math.PI * 2; m.timer = 1.5 + Math.random() * 3.5; }
+    if (m.timer <= 0) {
+      m.walking = Math.random() < 0.6; m.dir = Math.random() * Math.PI * 2; m.timer = 1.5 + Math.random() * 3.5;
+      // villagers stroll around their own village
+      if (m.home && Math.hypot(m.home.x - e.p.x, m.home.z - e.p.z) > 14) m.dir = Math.atan2(m.home.x - e.p.x, m.home.z - e.p.z);
+    }
     if (m.walking) {
       mx = Math.sin(m.dir); mz = Math.cos(m.dir);
       const nx = Math.floor(e.p.x + mx * 0.8), nz = Math.floor(e.p.z + mz * 0.8), fy = Math.floor(e.p.y);
@@ -355,6 +417,12 @@ function release(m) {
 }
 function pet(m) {
   const p = m.e.p;
+  if (m.type === 'villager') {
+    m.facing = Math.atan2(pl.p.x - p.x, pl.p.z - p.z); m.timer = 2; m.walking = false;
+    sfx.pet();
+    toast(`${m.nick}: ${VILLAGER_SAY[(m.id + Math.floor(performance.now() / 4000)) % VILLAGER_SAY.length]}`, 2200);
+    return;
+  }
   floatHeart(p.x, p.y + m.def.h + 0.2, p.z);
   if (!friends.has(m.id)) {
     friends.add(m.id); makeFriendBadge(m); updateStats(); scheduleSave();

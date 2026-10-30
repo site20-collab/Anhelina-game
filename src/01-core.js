@@ -1,10 +1,13 @@
 // ---------- world size & dimensions ----------
-const SX = 320, SY = 48, SZ = 320, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
-const CX = 160, CZ = 160, SEA = 14, KH = 16;
-// 0 big biome world, 1 princess kingdom, 2 race track, 3 picture workshop, 4 candy arena
-const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, NDIMS = 5;
+const SX = 512, SY = 48, SZ = 512, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
+const CX = 256, CZ = 256, SEA = 14, KH = 16;
+// 0 big biome world, 1 princess kingdom, then the games: race track, picture workshop, candy arena, hide and seek, cloud jumping
+const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, D_HIDE = 5, D_JUMP = 6, NDIMS = 7;
+// the two big worlds stay in memory; a game's world is built when you step in and dropped when you leave
 const worlds = [], biomeMaps = [];
-for (let d = 0; d < NDIMS; d++) { worlds.push(new Uint8Array(SX * SY * SZ)); biomeMaps.push(new Uint8Array(SX * SZ)); }
+for (let d = 0; d < NDIMS; d++) { worlds.push(d <= D_CASTLE ? new Uint8Array(SX * SY * SZ) : null); biomeMaps.push(d <= D_CASTLE ? new Uint8Array(SX * SZ) : null); }
+function allocDim(d) { if (!worlds[d]) { worlds[d] = new Uint8Array(SX * SY * SZ); biomeMaps[d] = new Uint8Array(SX * SZ); } }
+function freeDim(d) { if (d > D_CASTLE) { worlds[d] = null; biomeMaps[d] = null; } }
 let dim = D_MAIN, world = worlds[0], biomeMap = biomeMaps[0];
 function useDim(d) { world = worlds[d]; biomeMap = biomeMaps[d]; }
 function withDim(d, fn) {
@@ -12,7 +15,7 @@ function withDim(d, fn) {
   useDim(d);
   try { return fn(); } finally { world = pw; biomeMap = pb; }
 }
-const modeOf = d => d === D_RACE ? 'race' : d === D_ART ? 'art' : d === D_ARENA ? 'arena' : 'explore';
+const modeOf = d => d === D_RACE ? 'race' : d === D_ART ? 'art' : d === D_ARENA ? 'arena' : d === D_HIDE ? 'hide' : d === D_JUMP ? 'jump' : 'explore';
 const I = (x, y, z) => x + SX * (z + SZ * y);
 const inB = (x, y, z) => x >= 0 && x < SX && y >= 0 && y < SY && z >= 0 && z < SZ;
 const get = (x, y, z) => inB(x, y, z) ? world[I(x, y, z)] : 0;
@@ -25,10 +28,11 @@ const GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, LOG = 5, LEAVES = 6, CANDY = 7, 
   RED = 19, YELLOW = 20, TALLGRASS = 21, ICE = 22, CASTLE = 23, ROOF = 24, CARPET = 25,
   CORNFLOWER = 26, LAVENDER = 27, DAISY = 28, TULIP = 29, SUNFLOWER = 30, MARIGOLD = 31,
   ASPHALT = 32, ROADLINE = 33, KERB = 34, CHECKER = 35, BOOST = 36,
-  W_RED = 37, W_ORANGE = 38, W_YELLOW = 39, W_GREEN = 40, W_BLUE = 41, W_PURPLE = 42, W_PINK = 43, W_WHITE = 44, W_BLACK = 45, W_BROWN = 46;
+  W_RED = 37, W_ORANGE = 38, W_YELLOW = 39, W_GREEN = 40, W_BLUE = 41, W_PURPLE = 42, W_PINK = 43, W_WHITE = 44, W_BLACK = 45, W_BROWN = 46,
+  FURN = 47, LANTERN = 48, GRAVEL = 49, SANDSTONE = 50, WHEAT = 51, CLOUD = 52;
 const FLOWERS = [RED, YELLOW, CORNFLOWER, LAVENDER, DAISY, TULIP, SUNFLOWER, MARIGOLD];
 const WOOLS = [W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK, W_BROWN];
-// t: [top, side, bottom] tiles; k: 0 solid, 1 water, 2 plant
+// t: [top, side, bottom] tiles; k: 0 solid, 1 water, 2 plant, 3 furniture (solid, drawn as a model), 4 glowing
 const blk = (name, t, c, k = 0) => ({ name, t: Array.isArray(t) ? t : [t, t, t], c, k });
 const BLOCKS = [null,
   blk('Трава', [0, 1, 2], '#67b845'),
@@ -77,21 +81,27 @@ const BLOCKS = [null,
   blk('Білий', 47, '#f7f7f7'),
   blk('Чорний', 48, '#2a2630'),
   blk('Коричневий', 49, '#8a5a33'),
+  blk('Меблі', 49, '#c79856', 3),
+  blk('Ліхтарик', 50, '#ffe27a', 4),
+  blk('Стежка', 51, '#b9a98e'),
+  blk('Пісковик', [52, 53, 52], '#e3c98d'),
+  blk('Пшениця', 54, '#e6c35a', 2),
+  blk('Хмаринка', 55, '#ffffff'),
 ];
 const NT = 64;
-const OPQ = new Uint8Array(64);
-BLOCKS.forEach((b, i) => { if (b && b.k === 0) OPQ[i] = 1; });
+const OPQ = new Uint8Array(64), SOLID = new Uint8Array(64);
+BLOCKS.forEach((b, i) => { if (b && (b.k === 0 || b.k === 4)) OPQ[i] = 1; if (b && (b.k === 0 || b.k === 3 || b.k === 4)) SOLID[i] = 1; });
 const isOpaque = b => OPQ[b] === 1;
 const isPlant = b => b > 0 && BLOCKS[b] && BLOCKS[b].k === 2;
 const opaqueAt = (x, y, z) => OPQ[get(x, y, z)] === 1;
 function solidAt(x, y, z) {
   if (x < 0 || x >= SX || z < 0 || z >= SZ || y < 0) return true;
   if (y >= SY) return false;
-  return OPQ[world[I(x, y, z)]] === 1;
+  return SOLID[world[I(x, y, z)]] === 1;
 }
-const HOTBAR_EXPLORE = [PLANKS, CANDY, MAGIC, SNOW, BRICK, GOLD, CASTLE, ROOF, CARPET, ICE, WATER,
+const HOTBAR_EXPLORE = [PLANKS, CANDY, MAGIC, SNOW, BRICK, GOLD, CASTLE, ROOF, CARPET, ICE, WATER, LANTERN, GRAVEL, SANDSTONE, CLOUD,
   W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK,
-  GRASS, PINKGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, CACTUS, ...FLOWERS];
+  GRASS, PINKGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, CACTUS, ...FLOWERS, WHEAT];
 const HOTBAR_ART = WOOLS;
 
 // ---------- noise ----------
@@ -169,6 +179,12 @@ function makeAtlas() {
     (x, y) => ((y + Math.abs(x - 7.5)) % 8 < 3) ? '#ff7a1a' : '#ffd23f',
     wool('#e8333a'), wool('#ff8a1f'), wool('#ffd23f'), wool('#3bb54a'), wool('#3d7be0'),
     wool('#8a4fd8'), wool('#ff7ab8'), wool('#f7f7f7'), wool('#2a2630'), wool('#8a5a33'),
+    (x, y) => (x === 0 || y === 0 || x === 15 || y === 15 || x === 7 || y === 7) ? '#5a3e26' : (Math.hypot(x - 7.5, y - 7.5) < 4 ? '#fff6b0' : '#ffd84a'),
+    () => r() < .2 ? '#9a8c74' : r() < .15 ? '#cfc1a4' : '#b9a98e',
+    () => r() < .1 ? '#d6b979' : '#e3c98d',
+    (x, y) => y % 5 === 4 ? '#c9a868' : (r() < .08 ? '#d6b979' : '#e3c98d'),
+    (x, y) => { if (x % 3 === 1 && y >= 5) return y < 7 ? '#d9a93a' : '#8fae3c'; if (x % 3 === 1 && y >= 2 && y < 5) return '#e6c35a'; return null; },
+    (x, y) => (r() < .1 ? '#eef3ff' : '#ffffff'),
   ];
   tiles.forEach((fn, t) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
@@ -206,9 +222,27 @@ tex.magFilter = THREE.NearestFilter;
 tex.minFilter = THREE.NearestFilter;
 tex.generateMipmaps = false;
 const opaqueMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true });
-const waterMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide });
+// water gets its own tiling texture so it can ripple
+const waterTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3d8fe0'; g.fillRect(0, 0, 32, 32);
+  for (let i = 0; i < 40; i++) { const x = (i * 37) % 32, y = (i * 13) % 32, w = 3 + (i % 5); g.fillStyle = i % 3 ? '#62a8ee' : '#9ccaf6'; g.fillRect(x, y, w, 1); g.fillRect((x + 16) % 32, (y + 9) % 32, w - 1, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+  return t;
+})();
+const waterMat = new THREE.MeshLambertMaterial({ map: waterTex, vertexColors: true, transparent: true, opacity: 0.74, depthWrite: false, side: THREE.DoubleSide });
 const plantMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide });
-const MATS = [opaqueMat, waterMat, plantMat];
+// flowers and grass sway in the wind
+const windTime = { value: 0 };
+plantMat.onBeforeCompile = sh => {
+  sh.uniforms.windTime = windTime;
+  sh.vertexShader = 'uniform float windTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\nfloat sway = step(0.5, uv.y);\ntransformed.x += sway * sin(windTime * 1.8 + position.x * 0.7 + position.z * 0.45) * 0.07;\ntransformed.z += sway * cos(windTime * 1.5 + position.x * 0.4 + position.z * 0.8) * 0.05;');
+};
+const glowMat = new THREE.MeshBasicMaterial({ map: tex, vertexColors: true });
+const MATS = [opaqueMat, waterMat, plantMat, glowMat];
 
 // ---------- chunk meshing ----------
 const FACES = [
@@ -234,7 +268,9 @@ function addFace(Bf, x, y, z, f, tile, ao, lowerTop) {
   for (const c of f.corners) {
     Bf.pos.push(x + c[0], y + (lowerTop && c[1] === 1 ? 0.88 : c[1]), z + c[2]);
     Bf.nor.push(dx, dy, dz);
-    Bf.uv.push(tileU(tile, c[3]), 0.002 + c[4] * 0.996);
+    // water tiles by world position so the ripples run across neighbouring blocks
+    if (tile < 0) Bf.uv.push(((a === 0 ? z + c[2] : x + c[0])) * 0.5, ((a === 1 ? z + c[2] : y + c[1])) * 0.5);
+    else Bf.uv.push(tileU(tile, c[3]), 0.002 + c[4] * 0.996);
     let br = 1;
     if (ao) {
       const su = c[ua] ? 1 : -1, sv = c[va] ? 1 : -1;
@@ -259,7 +295,7 @@ function addPlant(Bf, x, y, z, tile) {
     Bf.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
   }
 }
-const VIEW = 3;
+const VIEW = matchMedia('(pointer: coarse)').matches ? 3 : 4;
 const chunkMeshes = [];
 const built = new Uint8Array(NCX * NCZ);
 let buildQueue = [], chunkKey = -1, camChunkX = 0, camChunkZ = 0;
@@ -287,19 +323,24 @@ function setMesh(k, i, Bf) {
   mesh.visible = true;
 }
 function buildChunk(cx, cz) {
-  const O = newBuf(), W = newBuf(), P = newBuf();
+  const O = newBuf(), W = newBuf(), P = newBuf(), G = newBuf();
   for (let y = 0; y < SY; y++) for (let z = cz * CS; z < cz * CS + CS; z++) for (let x = cx * CS; x < cx * CS + CS; x++) {
     const b = world[I(x, y, z)];
     if (!b) continue;
     const def = BLOCKS[b];
     if (def.k === 2) { addPlant(P, x, y, z, def.t[1]); continue; }
+    if (def.k === 3) continue;
     if (def.k === 1) {
       const lower = get(x, y + 1, z) !== WATER;
       for (const f of FACES) {
         const nb = get(x + f.dir[0], y + f.dir[1], z + f.dir[2]);
         if (nb === WATER || isOpaque(nb)) continue;
-        addFace(W, x, y, z, f, def.t[1], false, lower);
+        addFace(W, x, y, z, f, -1, false, lower);
       }
+      continue;
+    }
+    if (def.k === 4) {
+      for (const f of FACES) if (!opaqueAt(x + f.dir[0], y + f.dir[1], z + f.dir[2])) addFace(G, x, y, z, f, def.t[1], false, false);
       continue;
     }
     for (const f of FACES) {
@@ -309,7 +350,7 @@ function buildChunk(cx, cz) {
     }
   }
   const k = cx + cz * NCX;
-  setMesh(k, 0, O); setMesh(k, 1, W); setMesh(k, 2, P);
+  setMesh(k, 0, O); setMesh(k, 1, W); setMesh(k, 2, P); setMesh(k, 3, G);
   built[k] = 1;
 }
 function disposeChunk(k) {
@@ -359,7 +400,7 @@ function rebuildAround(x, z) {
 // ---------- clouds ----------
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false });
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 60; i++) {
   const g = new THREE.Group();
   const n = 2 + Math.floor(hash(i, 1, 21) * 3);
   for (let j = 0; j < n; j++) {
@@ -367,7 +408,7 @@ for (let i = 0; i < 40; i++) {
     m.position.set(j * 2.5 - n, 0, (hash(i, j, 24) - .5) * 3);
     g.add(m);
   }
-  g.position.set(CX + hash(i, 2, 25) * 300 - 150, SY + 6 + hash(i, 3, 26) * 5, CZ + hash(i, 4, 27) * 300 - 150);
+  g.position.set(CX + hash(i, 2, 25) * 360 - 180, SY + 6 + hash(i, 3, 26) * 5, CZ + hash(i, 4, 27) * 360 - 180);
   scene.add(g); clouds.push(g);
 }
 

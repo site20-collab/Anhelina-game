@@ -1,7 +1,7 @@
 // ---------- biomes ----------
-const MEADOW = 0, FOREST = 1, DESERT = 2, SNOWY = 3, CANDYLAND = 4, LAKE = 5, KINGDOM = 6, RACEB = 7, ARTB = 8, ARENAB = 9;
-const BIOME_NAMES = ['Луки', 'Ліс', 'Пустеля', 'Сніжні гори', 'Цукеркова країна', 'Озеро', 'Королівство Ангеліни', 'Гоночна траса', 'Майстерня картин', 'Цукеркова арена'];
-const BIOME_SKY = [0x9fd8ff, 0x93d0f5, 0xbfe6ff, 0xd8ecff, 0xffc9ec, 0x9fd8ff, 0xf1d9ff, 0xa8e0ff, 0xffe6f3, 0xffcfe9];
+const MEADOW = 0, FOREST = 1, DESERT = 2, SNOWY = 3, CANDYLAND = 4, LAKE = 5, KINGDOM = 6, RACEB = 7, ARTB = 8, ARENAB = 9, HIDEB = 10, JUMPB = 11;
+const BIOME_NAMES = ['Луки', 'Ліс', 'Пустеля', 'Сніжні гори', 'Цукеркова країна', 'Озеро', 'Королівство Ангеліни', 'Гоночна траса', 'Майстерня картин', 'Цукеркова арена', 'Лабіринт хованок', 'Хмаринки'];
+const BIOME_SKY = [0x9fd8ff, 0x93d0f5, 0xbfe6ff, 0xd8ecff, 0xffc9ec, 0x9fd8ff, 0xf1d9ff, 0xa8e0ff, 0xffe6f3, 0xffcfe9, 0xa6e3c8, 0xbfe2ff];
 function biomeAt(x, z) {
   if (Math.hypot(x - CX, z - CZ) < 18) return MEADOW;
   const candy = vnoise(x, z, 70, 30), temp = vnoise(x, z, 76, 10), moist = vnoise(x, z, 58, 20);
@@ -20,13 +20,14 @@ function rawHeight(x, z) {
 let spawnH = 18;
 function computeSpawnH() {
   let s = 0;
-  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; s += rawHeight(CX + Math.cos(a) * 13, CZ + Math.sin(a) * 13); }
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; s += rawHeight(CX + Math.cos(a) * 22, CZ + Math.sin(a) * 22); }
   spawnH = clamp(Math.round(s / 24), SEA + 3, 28);
 }
 function heightAt(x, z) {
   let h = rawHeight(x, z);
   const dc = Math.hypot(x - CX, z - CZ);
-  if (dc < 14) { const k = Math.max(0, (dc - 6) / 8); h = h * k + spawnH * (1 - k); }
+  if (dc < 28) { const k = Math.max(0, (dc - 19) / 9); h = h * k + spawnH * (1 - k); }
+  h = villageHeight(x, z, h);
   return Math.min(SY - 10, Math.floor(h));
 }
 function topY(x, z) {
@@ -76,8 +77,10 @@ function flatGround(top, biome) {
 
 // ---------- big world ----------
 function generateMain() {
+  clearFurniture(D_MAIN);
   world.fill(0);
   computeSpawnH();
+  computeVillageHeights();
   for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
     const h = heightAt(x, z), bi = biomeAt(x, z);
     biomeMap[x + z * SX] = h < SEA ? LAKE : bi;
@@ -99,7 +102,7 @@ function generateMain() {
   for (let z = 3; z < SZ - 3; z++) for (let x = 3; x < SX - 3; x++) {
     const g = topY(x, z) - 1, top = get(x, g, z), bi = biomeMap[x + z * SX], r = hash(x, z, 7);
     if (get(x, g + 1, z)) continue;
-    const nearSpawn = Math.hypot(x - CX, z - CZ) < 7;
+    const nearSpawn = Math.hypot(x - CX, z - CZ) < 20 || nearVillage(x, z, 4);
     const crowded = () => get(x - 1, g + 1, z) || get(x + 1, g + 1, z) || get(x, g + 1, z - 1) || get(x, g + 1, z + 1);
     const th = 4 + Math.floor(hash(x, z, 8) * 2);
     if (top === GRASS) {
@@ -117,14 +120,16 @@ function generateMain() {
       else if (r < 0.12) world[I(x, g + 1, z)] = flowerFor(CANDYLAND, x, z);
     }
   }
+  buildHouse();
+  buildVillages();
 }
 
 // ---------- hearts: many, easy to find, only 5 needed ----------
-const HEART_TOTAL = 15, HEART_NEED = 5;
+const HEART_TOTAL = 20, HEART_NEED = 5;
 let hearts = [];
 const collected = new Set();
 function placeHearts() {
-  hearts.forEach(h => { scene.remove(h.mesh); scene.remove(h.beam); });
+  hearts.forEach(h => scene.remove(h.mesh));
   hearts = [];
   let k = 0;
   while (hearts.length < HEART_TOTAL && k < 40000) {
@@ -135,7 +140,7 @@ function placeHearts() {
       const a = hash(k, 1, 12) * Math.PI * 2, r = 14 + hash(k, 2, 12) * 46;
       x = Math.floor(CX + Math.cos(a) * r); z = Math.floor(CZ + Math.sin(a) * r);
     } else { x = 6 + Math.floor(hash(k, 3, 11) * (SX - 12)); z = 6 + Math.floor(hash(k, 5, 13) * (SZ - 12)); }
-    if (Math.hypot(x - CX, z - CZ) < 10) continue;
+    if (Math.hypot(x - CX, z - CZ) < 10 || nearVillage(x, z, 2)) continue;
     if (hearts.some(h => Math.abs(h.x - x) + Math.abs(h.z - z) < (near ? 14 : 40))) continue;
     let g = topY(x, z), ok = true;
     while (g > 0) {
@@ -146,11 +151,11 @@ function placeHearts() {
     }
     // Angelina must fit under whatever hangs above the heart
     if (!ok || opaqueAt(x, g, z) || opaqueAt(x, g + 1, z) || opaqueAt(x, g + 2, z)) continue;
+    if (![GRASS, SAND, SNOWGRASS, PINKGRASS, SNOW, DIRT, STONE].includes(get(x, g - 1, z))) continue;
     const mesh = new THREE.Mesh(heartGeo, heartMat);
     mesh.position.set(x + 0.5, g + 1, z + 0.5);
     mesh.scale.setScalar(0.9);
-    const beam = new THREE.Object3D();
-    hearts.push({ id: hearts.length, x, z, y: g + 1, mesh, beam, phase: hearts.length * 0.7 });
+    hearts.push({ id: hearts.length, x, z, y: g + 1, mesh, phase: hearts.length * 0.7 });
     scene.add(mesh);
   }
 }
@@ -170,57 +175,91 @@ function tower(cx, cz, r, bottom, top, roofLayers) {
   cone(cx, cz, top + 1, r + 1, roofLayers);
 }
 function generateCastle() {
+  clearFurniture(D_CASTLE);
   world.fill(0);
   for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
     const dc = Math.hypot(x - CX, z - CZ);
     let h = Math.floor(KH - 1 + vnoise(x, z, 24, 61) * 7 + vnoise(x, z, 8, 62) * 2);
-    if (dc < 54) h = KH; else if (dc < 64) { const k = (dc - 54) / 10; h = Math.round(KH * (1 - k) + h * k); }
+    if (dc < 78) h = KH; else if (dc < 92) { const k = (dc - 78) / 14; h = Math.round(KH * (1 - k) + h * k); }
     biomeMap[x + z * SX] = KINGDOM;
     for (let y = 0; y <= h; y++) world[I(x, y, z)] = y === h ? GRASS : y >= h - 3 ? DIRT : STONE;
-    if (dc >= 26 && dc < 29.5) for (let y = KH - 2; y <= KH; y++) world[I(x, y, z)] = WATER;
+    if (dc >= 37 && dc < 41.5) for (let y = KH - 3; y <= KH; y++) world[I(x, y, z)] = WATER;
   }
-  fillBox(CX - 1, KH, CZ + 25, CX + 1, KH, CZ + 30, PLANKS);
-  const W = 16;
+  fillBox(CX - 2, KH, CZ + 36, CX + 2, KH, CZ + 43, PLANKS);
+  [-3, 3].forEach(dx => [CZ + 37, CZ + 42].forEach(z => { setB(CX + dx, KH, z, PLANKS); setB(CX + dx, KH + 1, z, LOG); setB(CX + dx, KH + 2, z, LANTERN); }));
+  // outer wall with battlements, a wide gate and towers
+  const W = 26;
   for (let i = -W; i <= W; i++) {
-    fillBox(CX + i, KH + 1, CZ - W, CX + i, KH + 7, CZ - W, CASTLE);
-    fillBox(CX + i, KH + 1, CZ + W, CX + i, KH + 7, CZ + W, CASTLE);
-    fillBox(CX - W, KH + 1, CZ + i, CX - W, KH + 7, CZ + i, CASTLE);
-    fillBox(CX + W, KH + 1, CZ + i, CX + W, KH + 7, CZ + i, CASTLE);
-    if (i % 2 === 0) { setB(CX + i, KH + 8, CZ - W, CASTLE); setB(CX + i, KH + 8, CZ + W, CASTLE); setB(CX - W, KH + 8, CZ + i, CASTLE); setB(CX + W, KH + 8, CZ + i, CASTLE); }
+    [[CX + i, CZ - W], [CX + i, CZ + W], [CX - W, CZ + i], [CX + W, CZ + i]].forEach(([x, z]) => {
+      fillBox(x, KH + 1, z, x, KH + 9, z, CASTLE);
+      if (i % 2 === 0) setB(x, KH + 10, z, CASTLE);
+    });
   }
-  fillBox(CX - 1, KH + 1, CZ + W, CX + 1, KH + 4, CZ + W, 0);
-  fillBox(CX - 2, KH + 5, CZ + W, CX + 2, KH + 5, CZ + W, CANDY);
-  [[-W, -W], [W, -W], [-W, W], [W, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 3, KH + 1, KH + 12, 6));
-  fillBox(CX - 1, KH, CZ + 5, CX + 1, KH, CZ + W, CASTLE);
-  const kx0 = CX - 9, kx1 = CX + 9, kz0 = CZ - 10, kz1 = CZ + 4, kt = KH + 10;
+  fillBox(CX - 2, KH + 1, CZ + W, CX + 2, KH + 6, CZ + W, 0);
+  fillBox(CX - 3, KH + 7, CZ + W, CX + 3, KH + 7, CZ + W, CANDY);
+  [[-W, -W], [W, -W], [-W, W], [W, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 4, KH + 1, KH + 16, 7));
+  [[-5, W], [5, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 2, KH + 1, KH + 14, 5));
+  [[0, -W], [-W, 0], [W, 0]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 3, KH + 1, KH + 13, 6));
+  // courtyard: path, fountain, flower beds and lanterns
+  fillBox(CX - 1, KH, CZ + 7, CX + 1, KH, CZ + W, CASTLE);
+  fillBox(CX - 22, KH, CZ + 18, CX + 22, KH, CZ + 19, CASTLE);
+  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) {
+    const r = Math.hypot(dx, dz), x = CX + dx, z = CZ + 14 + dz;
+    if (r <= 4.4 && r > 3.4) { setB(x, KH, z, CASTLE); setB(x, KH + 1, z, CASTLE); }
+    else if (r <= 3.4) setB(x, KH, z, WATER);
+  }
+  fillBox(CX, KH + 1, CZ + 14, CX, KH + 2, CZ + 14, CASTLE);
+  setB(CX, KH + 3, CZ + 14, WATER);
+  fillBox(CX - 1, KH, CZ + 7, CX + 1, KH, CZ + 9, CASTLE);
+  [[-18, 10], [18, 10], [-18, 22], [18, 22]].forEach(([dx, dz]) => {
+    for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) {
+      const x = CX + dx + a, z = CZ + dz + b;
+      if (Math.abs(a) === 2 || Math.abs(b) === 2) setB(x, KH + 1, z, LEAVES);
+      else setB(x, KH + 1, z, FLOWERS[(a + b + 8 + dx) % FLOWERS.length]);
+    }
+  });
+  [[-6, 9], [6, 9], [-6, 21], [6, 21], [-12, 18], [12, 18]].forEach(([dx, dz]) => { fillBox(CX + dx, KH + 1, CZ + dz, CX + dx, KH + 2, CZ + dz, LOG); setB(CX + dx, KH + 3, CZ + dz, LANTERN); });
+  // the palace: a great hall, a bedroom and a dining room
+  const kx0 = CX - 14, kx1 = CX + 14, kz0 = CZ - 18, kz1 = CZ + 6, kt = KH + 12;
   fillBox(kx0, KH + 1, kz0, kx1, kt, kz1, CASTLE);
   fillBox(kx0 + 1, KH + 1, kz0 + 1, kx1 - 1, kt, kz1 - 1, 0);
   fillBox(kx0 + 1, KH, kz0 + 1, kx1 - 1, KH, kz1 - 1, PLANKS);
   fillBox(kx0, kt + 1, kz0, kx1, kt + 1, kz1, CASTLE);
   for (let j = 0; kx0 + j <= kx1 - j && kz0 + j <= kz1 - j; j++) fillBox(kx0 + j, kt + 2 + j, kz0 + j, kx1 - j, kt + 2 + j, kz1 - j, ROOF);
-  tower(CX, CZ - 3, 2, kt + 2, KH + 24, 5);
-  fillBox(CX - 1, KH + 1, kz1, CX + 1, KH + 4, kz1, 0);
+  tower(CX, CZ - 6, 3, kt + 2, KH + 24, 5);
+  [[kx0, kz0], [kx1, kz0], [kx0, kz1], [kx1, kz1]].forEach(([x, z]) => tower(x, z, 2, KH + 1, KH + 18, 5));
+  fillBox(CX - 2, KH + 1, kz1, CX + 2, KH + 6, kz1, 0);
   for (let x = kx0 + 2; x <= kx1 - 2; x += 3) {
-    if (Math.abs(x - CX) > 2) fillBox(x, KH + 4, kz1, x, KH + 6, kz1, ICE);
-    fillBox(x, KH + 4, kz0, x, KH + 6, kz0, ICE);
+    if (Math.abs(x - CX) > 3) fillBox(x, KH + 4, kz1, x, KH + 7, kz1, ICE);
+    fillBox(x, KH + 4, kz0, x, KH + 7, kz0, ICE);
   }
-  for (let z = kz0 + 2; z <= kz1 - 2; z += 3) { fillBox(kx0, KH + 4, z, kx0, KH + 6, z, ICE); fillBox(kx1, KH + 4, z, kx1, KH + 6, z, ICE); }
-  [[kx0 + 2, kz0 + 2], [kx1 - 2, kz0 + 2], [kx0 + 2, kz1 - 2], [kx1 - 2, kz1 - 2]].forEach(([x, z]) => fillBox(x, KH + 1, z, x, kt, z, CANDY));
+  for (let z = kz0 + 2; z <= kz1 - 2; z += 3) { fillBox(kx0, KH + 4, z, kx0, KH + 7, z, ICE); fillBox(kx1, KH + 4, z, kx1, KH + 7, z, ICE); }
+  // side rooms
+  [kx0 + 8, kx1 - 8].forEach(x => { fillBox(x, KH + 1, kz0 + 1, x, KH + 7, kz1 - 1, CASTLE); fillBox(x, KH + 1, CZ - 7, x, KH + 4, CZ - 5, 0); });
+  for (let z = kz0 + 3; z <= kz1 - 3; z += 5) { setB(CX - 5, KH + 1, z, CANDY); fillBox(CX - 5, KH + 1, z, CX - 5, kt, z, CANDY); fillBox(CX + 5, KH + 1, z, CX + 5, kt, z, CANDY); }
   fillBox(CX - 1, KH, kz0 + 2, CX + 1, KH, kz1 - 1, CARPET);
   setB(CX, KH + 1, kz0 + 2, GOLD);
   fillBox(CX - 1, KH + 1, kz0 + 1, CX + 1, KH + 1, kz0 + 1, GOLD);
-  fillBox(CX, KH + 2, kz0 + 1, CX, KH + 4, kz0 + 1, GOLD);
-  setB(CX, KH + 5, kz0 + 1, MAGIC);
-  // a path from the bridge to the game portals
-  fillBox(CX - 1, KH, CZ + 31, CX + 1, KH, CZ + 50, CASTLE);
-  fillBox(CX - 16, KH, CZ + 40, CX + 16, KH, CZ + 41, CASTLE);
+  fillBox(CX, KH + 2, kz0 + 1, CX, KH + 5, kz0 + 1, GOLD);
+  setB(CX, KH + 6, kz0 + 1, MAGIC);
+  [[CX, CZ - 12], [CX, CZ - 2], [CX - 11, CZ - 6], [CX + 11, CZ - 6]].forEach(([x, z]) => setB(x, kt, z, LANTERN));
+  // princess bedroom (west) and dining room (east)
+  addGenFurniture(D_CASTLE, kx0 + 3, KH + 1, kz0 + 3, 'bed', 0); addGenFurniture(D_CASTLE, kx0 + 5, KH + 1, kz0 + 3, 'bed', 0);
+  addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, kz1 - 3, 'wardrobe', 1); addGenFurniture(D_CASTLE, kx0 + 6, KH + 1, kz1 - 2, 'lamp', 0);
+  addGenFurniture(D_CASTLE, kx0 + 4, KH + 1, CZ - 6, 'toybox', 1); addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, CZ - 10, 'shelf', 1);
+  for (let z = CZ - 12; z <= CZ; z += 3) { addGenFurniture(D_CASTLE, kx1 - 4, KH + 1, z, 'table', 0); addGenFurniture(D_CASTLE, kx1 - 5, KH + 1, z, 'chair', 1); addGenFurniture(D_CASTLE, kx1 - 3, KH + 1, z, 'chair', 3); }
+  addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz0 + 2, 'pot', 0); addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz1 - 2, 'pot', 0);
+  // path from the bridge to the row of game portals
+  fillBox(CX - 1, KH, CZ + 42, CX + 1, KH, CZ + 70, CASTLE);
+  fillBox(CX - 32, KH, CZ + 57, CX + 32, KH, CZ + 58, CASTLE);
+  [-28, -14, 14, 28].forEach(dx => fillBox(CX + dx - 1, KH, CZ + 58, CX + dx + 1, KH, CZ + 64, CASTLE));
   for (let z = 2; z < SZ - 2; z++) for (let x = 2; x < SX - 2; x++) {
     const g = topY(x, z) - 1;
     if (get(x, g, z) !== GRASS || get(x, g + 1, z)) continue;
     const dc = Math.hypot(x - CX, z - CZ), r = hash(x, z, 71);
     const roomy = !get(x - 1, g + 1, z) && !get(x + 1, g + 1, z) && !get(x, g + 1, z - 1) && !get(x, g + 1, z + 1);
-    if (dc > 58 && r < 0.03 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), CANDY, PINKLEAVES);
-    else if (dc > 58 && r < 0.04 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), LOG, LEAVES);
+    if (dc > 82 && r < 0.03 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), CANDY, PINKLEAVES);
+    else if (dc > 82 && r < 0.04 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), LOG, LEAVES);
     else if (r < 0.15) world[I(x, g + 1, z)] = FLOWERS[Math.floor(hash(x, z, 5) * FLOWERS.length)];
     else if (r < 0.2) world[I(x, g + 1, z)] = TALLGRASS;
   }

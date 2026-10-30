@@ -58,7 +58,7 @@ button:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 
 body:not([data-mode="explore"]) .explore-only{display:none!important}
 body[data-mode="explore"] .game-only{display:none!important}
-body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool{display:none!important}
+body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool,body[data-mode="hide"] .build-tool,body[data-mode="jump"] .build-tool{display:none!important}
 
 .game-hud{display:flex;flex-wrap:wrap;gap:4px;max-width:min(300px,44vw);pointer-events:none}
 .game-hud .pill{background:var(--panel);border-radius:10px;padding:3px 9px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--shade);white-space:nowrap}
@@ -99,7 +99,7 @@ body.touch .joy-zone,body.touch .jump{display:block}
 body.touch[data-mode="arena"] .shoot{display:block}
 body[data-mode="race"] .jump{display:none!important}
 body.touch .slot .num{display:none}
-body[data-mode="race"] .hotbar,body[data-mode="arena"] .hotbar{display:none}
+body[data-mode="race"] .hotbar,body[data-mode="arena"] .hotbar,body[data-mode="hide"] .hotbar,body[data-mode="jump"] .hotbar{display:none}
 
 .toast{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%) scale(.9);z-index:7;max-width:calc(100vw - 32px);text-align:center;
   background:var(--panel);border-radius:18px;padding:12px 20px;font-family:var(--display);font-weight:700;font-size:18px;
@@ -208,6 +208,8 @@ body.in-room .net-only{display:inline-flex!important}
 
 .steps{margin:0 0 18px;padding-left:22px;display:grid;gap:8px;font-size:16px;line-height:1.45}
 .steps b{color:var(--violet)}
+.inv-toggle.tab{background:var(--violet);min-width:56px;font-size:13px}
+.hotbar.collapsed .inv-toggle.tab{display:none}
 </style>
 </head>
 <body>
@@ -234,6 +236,7 @@ body.in-room .net-only{display:inline-flex!important}
       <button id="netBtn" class="mitem">Грати з друзями</button>
       <button id="installBtn" class="mitem" hidden>Встановити гру</button>
       <button id="viewBtn" class="mitem">Камера: ззаду</button>
+      <button id="nightBtn" class="mitem">Ніч: увімкнена</button>
       <button id="wardrobeBtn" class="mitem explore-only">Одяг</button>
       <button id="soundBtn" class="mitem">Звук: увімкнено</button>
       <button id="helpBtn" class="mitem">Як грати</button>
@@ -278,7 +281,7 @@ body.in-room .net-only{display:inline-flex!important}
       <label class="field">Твоє ім'я, його побачать подружки<input id="netName" maxlength="14" autocomplete="off"></label>
       <div class="actions"><button class="play" id="netHost">Створити кімнату</button></div>
       <div class="join-row">
-        <input id="netCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Код з 4 цифр" autocomplete="off" aria-label="Код кімнати">
+        <input id="netCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="Код з 6 цифр" autocomplete="off" aria-label="Код кімнати">
         <button class="ghost" id="netJoin">Приєднатися</button>
       </div>
       <button class="ghost back" id="netBack">Назад до гри</button>
@@ -318,7 +321,7 @@ body.in-room .net-only{display:inline-flex!important}
 <div class="overlay" id="overlay">
   <div class="card">
     <h1>Привіт, <span>Ангеліно!</span></h1>
-    <p>Щоб грати з подружкою, відкрий меню з трьома крапками й вибери «Грати з друзями». Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
+    <p>Твій світ став ще більшим: тут є шість сіл, твій будиночок, день і ніч. Знайди 5 сердечок, стрілка вгорі покаже, куди йти. Тоді відкриється портал до замку, а біля замку чекають п'ять ігор: гонки, картинки, цукеркова битва, хованки й стрибки по хмаринках. Щоб грати з подружкою, відкрий меню «•••» і вибери «Грати з друзями».</p>
     <ul class="keys desk-only">
       <li><b>W A S D</b>ходити, Shift бігти</li>
       <li><b>Пробіл</b>стрибати, у воді пливти вгору</li>
@@ -347,12 +350,15 @@ body.in-room .net-only{display:inline-flex!important}
 (() => {
 'use strict';
 // ---------- world size & dimensions ----------
-const SX = 320, SY = 48, SZ = 320, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
-const CX = 160, CZ = 160, SEA = 14, KH = 16;
-// 0 big biome world, 1 princess kingdom, 2 race track, 3 picture workshop, 4 candy arena
-const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, NDIMS = 5;
+const SX = 512, SY = 48, SZ = 512, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
+const CX = 256, CZ = 256, SEA = 14, KH = 16;
+// 0 big biome world, 1 princess kingdom, then the games: race track, picture workshop, candy arena, hide and seek, cloud jumping
+const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, D_HIDE = 5, D_JUMP = 6, NDIMS = 7;
+// the two big worlds stay in memory; a game's world is built when you step in and dropped when you leave
 const worlds = [], biomeMaps = [];
-for (let d = 0; d < NDIMS; d++) { worlds.push(new Uint8Array(SX * SY * SZ)); biomeMaps.push(new Uint8Array(SX * SZ)); }
+for (let d = 0; d < NDIMS; d++) { worlds.push(d <= D_CASTLE ? new Uint8Array(SX * SY * SZ) : null); biomeMaps.push(d <= D_CASTLE ? new Uint8Array(SX * SZ) : null); }
+function allocDim(d) { if (!worlds[d]) { worlds[d] = new Uint8Array(SX * SY * SZ); biomeMaps[d] = new Uint8Array(SX * SZ); } }
+function freeDim(d) { if (d > D_CASTLE) { worlds[d] = null; biomeMaps[d] = null; } }
 let dim = D_MAIN, world = worlds[0], biomeMap = biomeMaps[0];
 function useDim(d) { world = worlds[d]; biomeMap = biomeMaps[d]; }
 function withDim(d, fn) {
@@ -360,7 +366,7 @@ function withDim(d, fn) {
   useDim(d);
   try { return fn(); } finally { world = pw; biomeMap = pb; }
 }
-const modeOf = d => d === D_RACE ? 'race' : d === D_ART ? 'art' : d === D_ARENA ? 'arena' : 'explore';
+const modeOf = d => d === D_RACE ? 'race' : d === D_ART ? 'art' : d === D_ARENA ? 'arena' : d === D_HIDE ? 'hide' : d === D_JUMP ? 'jump' : 'explore';
 const I = (x, y, z) => x + SX * (z + SZ * y);
 const inB = (x, y, z) => x >= 0 && x < SX && y >= 0 && y < SY && z >= 0 && z < SZ;
 const get = (x, y, z) => inB(x, y, z) ? world[I(x, y, z)] : 0;
@@ -373,10 +379,11 @@ const GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, LOG = 5, LEAVES = 6, CANDY = 7, 
   RED = 19, YELLOW = 20, TALLGRASS = 21, ICE = 22, CASTLE = 23, ROOF = 24, CARPET = 25,
   CORNFLOWER = 26, LAVENDER = 27, DAISY = 28, TULIP = 29, SUNFLOWER = 30, MARIGOLD = 31,
   ASPHALT = 32, ROADLINE = 33, KERB = 34, CHECKER = 35, BOOST = 36,
-  W_RED = 37, W_ORANGE = 38, W_YELLOW = 39, W_GREEN = 40, W_BLUE = 41, W_PURPLE = 42, W_PINK = 43, W_WHITE = 44, W_BLACK = 45, W_BROWN = 46;
+  W_RED = 37, W_ORANGE = 38, W_YELLOW = 39, W_GREEN = 40, W_BLUE = 41, W_PURPLE = 42, W_PINK = 43, W_WHITE = 44, W_BLACK = 45, W_BROWN = 46,
+  FURN = 47, LANTERN = 48, GRAVEL = 49, SANDSTONE = 50, WHEAT = 51, CLOUD = 52;
 const FLOWERS = [RED, YELLOW, CORNFLOWER, LAVENDER, DAISY, TULIP, SUNFLOWER, MARIGOLD];
 const WOOLS = [W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK, W_BROWN];
-// t: [top, side, bottom] tiles; k: 0 solid, 1 water, 2 plant
+// t: [top, side, bottom] tiles; k: 0 solid, 1 water, 2 plant, 3 furniture (solid, drawn as a model), 4 glowing
 const blk = (name, t, c, k = 0) => ({ name, t: Array.isArray(t) ? t : [t, t, t], c, k });
 const BLOCKS = [null,
   blk('Трава', [0, 1, 2], '#67b845'),
@@ -425,21 +432,27 @@ const BLOCKS = [null,
   blk('Білий', 47, '#f7f7f7'),
   blk('Чорний', 48, '#2a2630'),
   blk('Коричневий', 49, '#8a5a33'),
+  blk('Меблі', 49, '#c79856', 3),
+  blk('Ліхтарик', 50, '#ffe27a', 4),
+  blk('Стежка', 51, '#b9a98e'),
+  blk('Пісковик', [52, 53, 52], '#e3c98d'),
+  blk('Пшениця', 54, '#e6c35a', 2),
+  blk('Хмаринка', 55, '#ffffff'),
 ];
 const NT = 64;
-const OPQ = new Uint8Array(64);
-BLOCKS.forEach((b, i) => { if (b && b.k === 0) OPQ[i] = 1; });
+const OPQ = new Uint8Array(64), SOLID = new Uint8Array(64);
+BLOCKS.forEach((b, i) => { if (b && (b.k === 0 || b.k === 4)) OPQ[i] = 1; if (b && (b.k === 0 || b.k === 3 || b.k === 4)) SOLID[i] = 1; });
 const isOpaque = b => OPQ[b] === 1;
 const isPlant = b => b > 0 && BLOCKS[b] && BLOCKS[b].k === 2;
 const opaqueAt = (x, y, z) => OPQ[get(x, y, z)] === 1;
 function solidAt(x, y, z) {
   if (x < 0 || x >= SX || z < 0 || z >= SZ || y < 0) return true;
   if (y >= SY) return false;
-  return OPQ[world[I(x, y, z)]] === 1;
+  return SOLID[world[I(x, y, z)]] === 1;
 }
-const HOTBAR_EXPLORE = [PLANKS, CANDY, MAGIC, SNOW, BRICK, GOLD, CASTLE, ROOF, CARPET, ICE, WATER,
+const HOTBAR_EXPLORE = [PLANKS, CANDY, MAGIC, SNOW, BRICK, GOLD, CASTLE, ROOF, CARPET, ICE, WATER, LANTERN, GRAVEL, SANDSTONE, CLOUD,
   W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK,
-  GRASS, PINKGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, CACTUS, ...FLOWERS];
+  GRASS, PINKGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, CACTUS, ...FLOWERS, WHEAT];
 const HOTBAR_ART = WOOLS;
 
 // ---------- noise ----------
@@ -517,6 +530,12 @@ function makeAtlas() {
     (x, y) => ((y + Math.abs(x - 7.5)) % 8 < 3) ? '#ff7a1a' : '#ffd23f',
     wool('#e8333a'), wool('#ff8a1f'), wool('#ffd23f'), wool('#3bb54a'), wool('#3d7be0'),
     wool('#8a4fd8'), wool('#ff7ab8'), wool('#f7f7f7'), wool('#2a2630'), wool('#8a5a33'),
+    (x, y) => (x === 0 || y === 0 || x === 15 || y === 15 || x === 7 || y === 7) ? '#5a3e26' : (Math.hypot(x - 7.5, y - 7.5) < 4 ? '#fff6b0' : '#ffd84a'),
+    () => r() < .2 ? '#9a8c74' : r() < .15 ? '#cfc1a4' : '#b9a98e',
+    () => r() < .1 ? '#d6b979' : '#e3c98d',
+    (x, y) => y % 5 === 4 ? '#c9a868' : (r() < .08 ? '#d6b979' : '#e3c98d'),
+    (x, y) => { if (x % 3 === 1 && y >= 5) return y < 7 ? '#d9a93a' : '#8fae3c'; if (x % 3 === 1 && y >= 2 && y < 5) return '#e6c35a'; return null; },
+    (x, y) => (r() < .1 ? '#eef3ff' : '#ffffff'),
   ];
   tiles.forEach((fn, t) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
@@ -554,9 +573,27 @@ tex.magFilter = THREE.NearestFilter;
 tex.minFilter = THREE.NearestFilter;
 tex.generateMipmaps = false;
 const opaqueMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true });
-const waterMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide });
+// water gets its own tiling texture so it can ripple
+const waterTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3d8fe0'; g.fillRect(0, 0, 32, 32);
+  for (let i = 0; i < 40; i++) { const x = (i * 37) % 32, y = (i * 13) % 32, w = 3 + (i % 5); g.fillStyle = i % 3 ? '#62a8ee' : '#9ccaf6'; g.fillRect(x, y, w, 1); g.fillRect((x + 16) % 32, (y + 9) % 32, w - 1, 1); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false;
+  return t;
+})();
+const waterMat = new THREE.MeshLambertMaterial({ map: waterTex, vertexColors: true, transparent: true, opacity: 0.74, depthWrite: false, side: THREE.DoubleSide });
 const plantMat = new THREE.MeshLambertMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide });
-const MATS = [opaqueMat, waterMat, plantMat];
+// flowers and grass sway in the wind
+const windTime = { value: 0 };
+plantMat.onBeforeCompile = sh => {
+  sh.uniforms.windTime = windTime;
+  sh.vertexShader = 'uniform float windTime;\n' + sh.vertexShader.replace('#include <begin_vertex>',
+    '#include <begin_vertex>\nfloat sway = step(0.5, uv.y);\ntransformed.x += sway * sin(windTime * 1.8 + position.x * 0.7 + position.z * 0.45) * 0.07;\ntransformed.z += sway * cos(windTime * 1.5 + position.x * 0.4 + position.z * 0.8) * 0.05;');
+};
+const glowMat = new THREE.MeshBasicMaterial({ map: tex, vertexColors: true });
+const MATS = [opaqueMat, waterMat, plantMat, glowMat];
 
 // ---------- chunk meshing ----------
 const FACES = [
@@ -582,7 +619,9 @@ function addFace(Bf, x, y, z, f, tile, ao, lowerTop) {
   for (const c of f.corners) {
     Bf.pos.push(x + c[0], y + (lowerTop && c[1] === 1 ? 0.88 : c[1]), z + c[2]);
     Bf.nor.push(dx, dy, dz);
-    Bf.uv.push(tileU(tile, c[3]), 0.002 + c[4] * 0.996);
+    // water tiles by world position so the ripples run across neighbouring blocks
+    if (tile < 0) Bf.uv.push(((a === 0 ? z + c[2] : x + c[0])) * 0.5, ((a === 1 ? z + c[2] : y + c[1])) * 0.5);
+    else Bf.uv.push(tileU(tile, c[3]), 0.002 + c[4] * 0.996);
     let br = 1;
     if (ao) {
       const su = c[ua] ? 1 : -1, sv = c[va] ? 1 : -1;
@@ -607,7 +646,7 @@ function addPlant(Bf, x, y, z, tile) {
     Bf.idx.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
   }
 }
-const VIEW = 3;
+const VIEW = matchMedia('(pointer: coarse)').matches ? 3 : 4;
 const chunkMeshes = [];
 const built = new Uint8Array(NCX * NCZ);
 let buildQueue = [], chunkKey = -1, camChunkX = 0, camChunkZ = 0;
@@ -635,19 +674,24 @@ function setMesh(k, i, Bf) {
   mesh.visible = true;
 }
 function buildChunk(cx, cz) {
-  const O = newBuf(), W = newBuf(), P = newBuf();
+  const O = newBuf(), W = newBuf(), P = newBuf(), G = newBuf();
   for (let y = 0; y < SY; y++) for (let z = cz * CS; z < cz * CS + CS; z++) for (let x = cx * CS; x < cx * CS + CS; x++) {
     const b = world[I(x, y, z)];
     if (!b) continue;
     const def = BLOCKS[b];
     if (def.k === 2) { addPlant(P, x, y, z, def.t[1]); continue; }
+    if (def.k === 3) continue;
     if (def.k === 1) {
       const lower = get(x, y + 1, z) !== WATER;
       for (const f of FACES) {
         const nb = get(x + f.dir[0], y + f.dir[1], z + f.dir[2]);
         if (nb === WATER || isOpaque(nb)) continue;
-        addFace(W, x, y, z, f, def.t[1], false, lower);
+        addFace(W, x, y, z, f, -1, false, lower);
       }
+      continue;
+    }
+    if (def.k === 4) {
+      for (const f of FACES) if (!opaqueAt(x + f.dir[0], y + f.dir[1], z + f.dir[2])) addFace(G, x, y, z, f, def.t[1], false, false);
       continue;
     }
     for (const f of FACES) {
@@ -657,7 +701,7 @@ function buildChunk(cx, cz) {
     }
   }
   const k = cx + cz * NCX;
-  setMesh(k, 0, O); setMesh(k, 1, W); setMesh(k, 2, P);
+  setMesh(k, 0, O); setMesh(k, 1, W); setMesh(k, 2, P); setMesh(k, 3, G);
   built[k] = 1;
 }
 function disposeChunk(k) {
@@ -707,7 +751,7 @@ function rebuildAround(x, z) {
 // ---------- clouds ----------
 const clouds = [];
 const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92, fog: false });
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 60; i++) {
   const g = new THREE.Group();
   const n = 2 + Math.floor(hash(i, 1, 21) * 3);
   for (let j = 0; j < n; j++) {
@@ -715,7 +759,7 @@ for (let i = 0; i < 40; i++) {
     m.position.set(j * 2.5 - n, 0, (hash(i, j, 24) - .5) * 3);
     g.add(m);
   }
-  g.position.set(CX + hash(i, 2, 25) * 300 - 150, SY + 6 + hash(i, 3, 26) * 5, CZ + hash(i, 4, 27) * 300 - 150);
+  g.position.set(CX + hash(i, 2, 25) * 360 - 180, SY + 6 + hash(i, 3, 26) * 5, CZ + hash(i, 4, 27) * 360 - 180);
   scene.add(g); clouds.push(g);
 }
 
@@ -842,9 +886,9 @@ const steps = n => {
 const fmtTime = t => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 
 // ---------- biomes ----------
-const MEADOW = 0, FOREST = 1, DESERT = 2, SNOWY = 3, CANDYLAND = 4, LAKE = 5, KINGDOM = 6, RACEB = 7, ARTB = 8, ARENAB = 9;
-const BIOME_NAMES = ['Луки', 'Ліс', 'Пустеля', 'Сніжні гори', 'Цукеркова країна', 'Озеро', 'Королівство Ангеліни', 'Гоночна траса', 'Майстерня картин', 'Цукеркова арена'];
-const BIOME_SKY = [0x9fd8ff, 0x93d0f5, 0xbfe6ff, 0xd8ecff, 0xffc9ec, 0x9fd8ff, 0xf1d9ff, 0xa8e0ff, 0xffe6f3, 0xffcfe9];
+const MEADOW = 0, FOREST = 1, DESERT = 2, SNOWY = 3, CANDYLAND = 4, LAKE = 5, KINGDOM = 6, RACEB = 7, ARTB = 8, ARENAB = 9, HIDEB = 10, JUMPB = 11;
+const BIOME_NAMES = ['Луки', 'Ліс', 'Пустеля', 'Сніжні гори', 'Цукеркова країна', 'Озеро', 'Королівство Ангеліни', 'Гоночна траса', 'Майстерня картин', 'Цукеркова арена', 'Лабіринт хованок', 'Хмаринки'];
+const BIOME_SKY = [0x9fd8ff, 0x93d0f5, 0xbfe6ff, 0xd8ecff, 0xffc9ec, 0x9fd8ff, 0xf1d9ff, 0xa8e0ff, 0xffe6f3, 0xffcfe9, 0xa6e3c8, 0xbfe2ff];
 function biomeAt(x, z) {
   if (Math.hypot(x - CX, z - CZ) < 18) return MEADOW;
   const candy = vnoise(x, z, 70, 30), temp = vnoise(x, z, 76, 10), moist = vnoise(x, z, 58, 20);
@@ -863,13 +907,14 @@ function rawHeight(x, z) {
 let spawnH = 18;
 function computeSpawnH() {
   let s = 0;
-  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; s += rawHeight(CX + Math.cos(a) * 13, CZ + Math.sin(a) * 13); }
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; s += rawHeight(CX + Math.cos(a) * 22, CZ + Math.sin(a) * 22); }
   spawnH = clamp(Math.round(s / 24), SEA + 3, 28);
 }
 function heightAt(x, z) {
   let h = rawHeight(x, z);
   const dc = Math.hypot(x - CX, z - CZ);
-  if (dc < 14) { const k = Math.max(0, (dc - 6) / 8); h = h * k + spawnH * (1 - k); }
+  if (dc < 28) { const k = Math.max(0, (dc - 19) / 9); h = h * k + spawnH * (1 - k); }
+  h = villageHeight(x, z, h);
   return Math.min(SY - 10, Math.floor(h));
 }
 function topY(x, z) {
@@ -919,8 +964,10 @@ function flatGround(top, biome) {
 
 // ---------- big world ----------
 function generateMain() {
+  clearFurniture(D_MAIN);
   world.fill(0);
   computeSpawnH();
+  computeVillageHeights();
   for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
     const h = heightAt(x, z), bi = biomeAt(x, z);
     biomeMap[x + z * SX] = h < SEA ? LAKE : bi;
@@ -942,7 +989,7 @@ function generateMain() {
   for (let z = 3; z < SZ - 3; z++) for (let x = 3; x < SX - 3; x++) {
     const g = topY(x, z) - 1, top = get(x, g, z), bi = biomeMap[x + z * SX], r = hash(x, z, 7);
     if (get(x, g + 1, z)) continue;
-    const nearSpawn = Math.hypot(x - CX, z - CZ) < 7;
+    const nearSpawn = Math.hypot(x - CX, z - CZ) < 20 || nearVillage(x, z, 4);
     const crowded = () => get(x - 1, g + 1, z) || get(x + 1, g + 1, z) || get(x, g + 1, z - 1) || get(x, g + 1, z + 1);
     const th = 4 + Math.floor(hash(x, z, 8) * 2);
     if (top === GRASS) {
@@ -960,14 +1007,16 @@ function generateMain() {
       else if (r < 0.12) world[I(x, g + 1, z)] = flowerFor(CANDYLAND, x, z);
     }
   }
+  buildHouse();
+  buildVillages();
 }
 
 // ---------- hearts: many, easy to find, only 5 needed ----------
-const HEART_TOTAL = 15, HEART_NEED = 5;
+const HEART_TOTAL = 20, HEART_NEED = 5;
 let hearts = [];
 const collected = new Set();
 function placeHearts() {
-  hearts.forEach(h => { scene.remove(h.mesh); scene.remove(h.beam); });
+  hearts.forEach(h => scene.remove(h.mesh));
   hearts = [];
   let k = 0;
   while (hearts.length < HEART_TOTAL && k < 40000) {
@@ -978,7 +1027,7 @@ function placeHearts() {
       const a = hash(k, 1, 12) * Math.PI * 2, r = 14 + hash(k, 2, 12) * 46;
       x = Math.floor(CX + Math.cos(a) * r); z = Math.floor(CZ + Math.sin(a) * r);
     } else { x = 6 + Math.floor(hash(k, 3, 11) * (SX - 12)); z = 6 + Math.floor(hash(k, 5, 13) * (SZ - 12)); }
-    if (Math.hypot(x - CX, z - CZ) < 10) continue;
+    if (Math.hypot(x - CX, z - CZ) < 10 || nearVillage(x, z, 2)) continue;
     if (hearts.some(h => Math.abs(h.x - x) + Math.abs(h.z - z) < (near ? 14 : 40))) continue;
     let g = topY(x, z), ok = true;
     while (g > 0) {
@@ -989,11 +1038,11 @@ function placeHearts() {
     }
     // Angelina must fit under whatever hangs above the heart
     if (!ok || opaqueAt(x, g, z) || opaqueAt(x, g + 1, z) || opaqueAt(x, g + 2, z)) continue;
+    if (![GRASS, SAND, SNOWGRASS, PINKGRASS, SNOW, DIRT, STONE].includes(get(x, g - 1, z))) continue;
     const mesh = new THREE.Mesh(heartGeo, heartMat);
     mesh.position.set(x + 0.5, g + 1, z + 0.5);
     mesh.scale.setScalar(0.9);
-    const beam = new THREE.Object3D();
-    hearts.push({ id: hearts.length, x, z, y: g + 1, mesh, beam, phase: hearts.length * 0.7 });
+    hearts.push({ id: hearts.length, x, z, y: g + 1, mesh, phase: hearts.length * 0.7 });
     scene.add(mesh);
   }
 }
@@ -1013,57 +1062,91 @@ function tower(cx, cz, r, bottom, top, roofLayers) {
   cone(cx, cz, top + 1, r + 1, roofLayers);
 }
 function generateCastle() {
+  clearFurniture(D_CASTLE);
   world.fill(0);
   for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
     const dc = Math.hypot(x - CX, z - CZ);
     let h = Math.floor(KH - 1 + vnoise(x, z, 24, 61) * 7 + vnoise(x, z, 8, 62) * 2);
-    if (dc < 54) h = KH; else if (dc < 64) { const k = (dc - 54) / 10; h = Math.round(KH * (1 - k) + h * k); }
+    if (dc < 78) h = KH; else if (dc < 92) { const k = (dc - 78) / 14; h = Math.round(KH * (1 - k) + h * k); }
     biomeMap[x + z * SX] = KINGDOM;
     for (let y = 0; y <= h; y++) world[I(x, y, z)] = y === h ? GRASS : y >= h - 3 ? DIRT : STONE;
-    if (dc >= 26 && dc < 29.5) for (let y = KH - 2; y <= KH; y++) world[I(x, y, z)] = WATER;
+    if (dc >= 37 && dc < 41.5) for (let y = KH - 3; y <= KH; y++) world[I(x, y, z)] = WATER;
   }
-  fillBox(CX - 1, KH, CZ + 25, CX + 1, KH, CZ + 30, PLANKS);
-  const W = 16;
+  fillBox(CX - 2, KH, CZ + 36, CX + 2, KH, CZ + 43, PLANKS);
+  [-3, 3].forEach(dx => [CZ + 37, CZ + 42].forEach(z => { setB(CX + dx, KH, z, PLANKS); setB(CX + dx, KH + 1, z, LOG); setB(CX + dx, KH + 2, z, LANTERN); }));
+  // outer wall with battlements, a wide gate and towers
+  const W = 26;
   for (let i = -W; i <= W; i++) {
-    fillBox(CX + i, KH + 1, CZ - W, CX + i, KH + 7, CZ - W, CASTLE);
-    fillBox(CX + i, KH + 1, CZ + W, CX + i, KH + 7, CZ + W, CASTLE);
-    fillBox(CX - W, KH + 1, CZ + i, CX - W, KH + 7, CZ + i, CASTLE);
-    fillBox(CX + W, KH + 1, CZ + i, CX + W, KH + 7, CZ + i, CASTLE);
-    if (i % 2 === 0) { setB(CX + i, KH + 8, CZ - W, CASTLE); setB(CX + i, KH + 8, CZ + W, CASTLE); setB(CX - W, KH + 8, CZ + i, CASTLE); setB(CX + W, KH + 8, CZ + i, CASTLE); }
+    [[CX + i, CZ - W], [CX + i, CZ + W], [CX - W, CZ + i], [CX + W, CZ + i]].forEach(([x, z]) => {
+      fillBox(x, KH + 1, z, x, KH + 9, z, CASTLE);
+      if (i % 2 === 0) setB(x, KH + 10, z, CASTLE);
+    });
   }
-  fillBox(CX - 1, KH + 1, CZ + W, CX + 1, KH + 4, CZ + W, 0);
-  fillBox(CX - 2, KH + 5, CZ + W, CX + 2, KH + 5, CZ + W, CANDY);
-  [[-W, -W], [W, -W], [-W, W], [W, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 3, KH + 1, KH + 12, 6));
-  fillBox(CX - 1, KH, CZ + 5, CX + 1, KH, CZ + W, CASTLE);
-  const kx0 = CX - 9, kx1 = CX + 9, kz0 = CZ - 10, kz1 = CZ + 4, kt = KH + 10;
+  fillBox(CX - 2, KH + 1, CZ + W, CX + 2, KH + 6, CZ + W, 0);
+  fillBox(CX - 3, KH + 7, CZ + W, CX + 3, KH + 7, CZ + W, CANDY);
+  [[-W, -W], [W, -W], [-W, W], [W, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 4, KH + 1, KH + 16, 7));
+  [[-5, W], [5, W]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 2, KH + 1, KH + 14, 5));
+  [[0, -W], [-W, 0], [W, 0]].forEach(([dx, dz]) => tower(CX + dx, CZ + dz, 3, KH + 1, KH + 13, 6));
+  // courtyard: path, fountain, flower beds and lanterns
+  fillBox(CX - 1, KH, CZ + 7, CX + 1, KH, CZ + W, CASTLE);
+  fillBox(CX - 22, KH, CZ + 18, CX + 22, KH, CZ + 19, CASTLE);
+  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) {
+    const r = Math.hypot(dx, dz), x = CX + dx, z = CZ + 14 + dz;
+    if (r <= 4.4 && r > 3.4) { setB(x, KH, z, CASTLE); setB(x, KH + 1, z, CASTLE); }
+    else if (r <= 3.4) setB(x, KH, z, WATER);
+  }
+  fillBox(CX, KH + 1, CZ + 14, CX, KH + 2, CZ + 14, CASTLE);
+  setB(CX, KH + 3, CZ + 14, WATER);
+  fillBox(CX - 1, KH, CZ + 7, CX + 1, KH, CZ + 9, CASTLE);
+  [[-18, 10], [18, 10], [-18, 22], [18, 22]].forEach(([dx, dz]) => {
+    for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) {
+      const x = CX + dx + a, z = CZ + dz + b;
+      if (Math.abs(a) === 2 || Math.abs(b) === 2) setB(x, KH + 1, z, LEAVES);
+      else setB(x, KH + 1, z, FLOWERS[(a + b + 8 + dx) % FLOWERS.length]);
+    }
+  });
+  [[-6, 9], [6, 9], [-6, 21], [6, 21], [-12, 18], [12, 18]].forEach(([dx, dz]) => { fillBox(CX + dx, KH + 1, CZ + dz, CX + dx, KH + 2, CZ + dz, LOG); setB(CX + dx, KH + 3, CZ + dz, LANTERN); });
+  // the palace: a great hall, a bedroom and a dining room
+  const kx0 = CX - 14, kx1 = CX + 14, kz0 = CZ - 18, kz1 = CZ + 6, kt = KH + 12;
   fillBox(kx0, KH + 1, kz0, kx1, kt, kz1, CASTLE);
   fillBox(kx0 + 1, KH + 1, kz0 + 1, kx1 - 1, kt, kz1 - 1, 0);
   fillBox(kx0 + 1, KH, kz0 + 1, kx1 - 1, KH, kz1 - 1, PLANKS);
   fillBox(kx0, kt + 1, kz0, kx1, kt + 1, kz1, CASTLE);
   for (let j = 0; kx0 + j <= kx1 - j && kz0 + j <= kz1 - j; j++) fillBox(kx0 + j, kt + 2 + j, kz0 + j, kx1 - j, kt + 2 + j, kz1 - j, ROOF);
-  tower(CX, CZ - 3, 2, kt + 2, KH + 24, 5);
-  fillBox(CX - 1, KH + 1, kz1, CX + 1, KH + 4, kz1, 0);
+  tower(CX, CZ - 6, 3, kt + 2, KH + 24, 5);
+  [[kx0, kz0], [kx1, kz0], [kx0, kz1], [kx1, kz1]].forEach(([x, z]) => tower(x, z, 2, KH + 1, KH + 18, 5));
+  fillBox(CX - 2, KH + 1, kz1, CX + 2, KH + 6, kz1, 0);
   for (let x = kx0 + 2; x <= kx1 - 2; x += 3) {
-    if (Math.abs(x - CX) > 2) fillBox(x, KH + 4, kz1, x, KH + 6, kz1, ICE);
-    fillBox(x, KH + 4, kz0, x, KH + 6, kz0, ICE);
+    if (Math.abs(x - CX) > 3) fillBox(x, KH + 4, kz1, x, KH + 7, kz1, ICE);
+    fillBox(x, KH + 4, kz0, x, KH + 7, kz0, ICE);
   }
-  for (let z = kz0 + 2; z <= kz1 - 2; z += 3) { fillBox(kx0, KH + 4, z, kx0, KH + 6, z, ICE); fillBox(kx1, KH + 4, z, kx1, KH + 6, z, ICE); }
-  [[kx0 + 2, kz0 + 2], [kx1 - 2, kz0 + 2], [kx0 + 2, kz1 - 2], [kx1 - 2, kz1 - 2]].forEach(([x, z]) => fillBox(x, KH + 1, z, x, kt, z, CANDY));
+  for (let z = kz0 + 2; z <= kz1 - 2; z += 3) { fillBox(kx0, KH + 4, z, kx0, KH + 7, z, ICE); fillBox(kx1, KH + 4, z, kx1, KH + 7, z, ICE); }
+  // side rooms
+  [kx0 + 8, kx1 - 8].forEach(x => { fillBox(x, KH + 1, kz0 + 1, x, KH + 7, kz1 - 1, CASTLE); fillBox(x, KH + 1, CZ - 7, x, KH + 4, CZ - 5, 0); });
+  for (let z = kz0 + 3; z <= kz1 - 3; z += 5) { setB(CX - 5, KH + 1, z, CANDY); fillBox(CX - 5, KH + 1, z, CX - 5, kt, z, CANDY); fillBox(CX + 5, KH + 1, z, CX + 5, kt, z, CANDY); }
   fillBox(CX - 1, KH, kz0 + 2, CX + 1, KH, kz1 - 1, CARPET);
   setB(CX, KH + 1, kz0 + 2, GOLD);
   fillBox(CX - 1, KH + 1, kz0 + 1, CX + 1, KH + 1, kz0 + 1, GOLD);
-  fillBox(CX, KH + 2, kz0 + 1, CX, KH + 4, kz0 + 1, GOLD);
-  setB(CX, KH + 5, kz0 + 1, MAGIC);
-  // a path from the bridge to the game portals
-  fillBox(CX - 1, KH, CZ + 31, CX + 1, KH, CZ + 50, CASTLE);
-  fillBox(CX - 16, KH, CZ + 40, CX + 16, KH, CZ + 41, CASTLE);
+  fillBox(CX, KH + 2, kz0 + 1, CX, KH + 5, kz0 + 1, GOLD);
+  setB(CX, KH + 6, kz0 + 1, MAGIC);
+  [[CX, CZ - 12], [CX, CZ - 2], [CX - 11, CZ - 6], [CX + 11, CZ - 6]].forEach(([x, z]) => setB(x, kt, z, LANTERN));
+  // princess bedroom (west) and dining room (east)
+  addGenFurniture(D_CASTLE, kx0 + 3, KH + 1, kz0 + 3, 'bed', 0); addGenFurniture(D_CASTLE, kx0 + 5, KH + 1, kz0 + 3, 'bed', 0);
+  addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, kz1 - 3, 'wardrobe', 1); addGenFurniture(D_CASTLE, kx0 + 6, KH + 1, kz1 - 2, 'lamp', 0);
+  addGenFurniture(D_CASTLE, kx0 + 4, KH + 1, CZ - 6, 'toybox', 1); addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, CZ - 10, 'shelf', 1);
+  for (let z = CZ - 12; z <= CZ; z += 3) { addGenFurniture(D_CASTLE, kx1 - 4, KH + 1, z, 'table', 0); addGenFurniture(D_CASTLE, kx1 - 5, KH + 1, z, 'chair', 1); addGenFurniture(D_CASTLE, kx1 - 3, KH + 1, z, 'chair', 3); }
+  addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz0 + 2, 'pot', 0); addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz1 - 2, 'pot', 0);
+  // path from the bridge to the row of game portals
+  fillBox(CX - 1, KH, CZ + 42, CX + 1, KH, CZ + 70, CASTLE);
+  fillBox(CX - 32, KH, CZ + 57, CX + 32, KH, CZ + 58, CASTLE);
+  [-28, -14, 14, 28].forEach(dx => fillBox(CX + dx - 1, KH, CZ + 58, CX + dx + 1, KH, CZ + 64, CASTLE));
   for (let z = 2; z < SZ - 2; z++) for (let x = 2; x < SX - 2; x++) {
     const g = topY(x, z) - 1;
     if (get(x, g, z) !== GRASS || get(x, g + 1, z)) continue;
     const dc = Math.hypot(x - CX, z - CZ), r = hash(x, z, 71);
     const roomy = !get(x - 1, g + 1, z) && !get(x + 1, g + 1, z) && !get(x, g + 1, z - 1) && !get(x, g + 1, z + 1);
-    if (dc > 58 && r < 0.03 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), CANDY, PINKLEAVES);
-    else if (dc > 58 && r < 0.04 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), LOG, LEAVES);
+    if (dc > 82 && r < 0.03 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), CANDY, PINKLEAVES);
+    else if (dc > 82 && r < 0.04 && roomy) treeOak(x, g, z, 4 + Math.floor(hash(x, z, 8) * 2), LOG, LEAVES);
     else if (r < 0.15) world[I(x, g + 1, z)] = FLOWERS[Math.floor(hash(x, z, 5) * FLOWERS.length)];
     else if (r < 0.2) world[I(x, g + 1, z)] = TALLGRASS;
   }
@@ -1195,6 +1278,255 @@ function generateArena() {
   }
 }
 
+// ---------- furniture ----------
+// each piece is a list of boxes [w, h, d, colour, x, y, z, glows?] around the bottom centre of its cell, facing +z
+const FURNITURE = {
+  bed: { name: 'Ліжко', h: 1, parts: [[0.9, 0.3, 0.95, '#c79856', 0, 0.15, 0], [0.86, 0.14, 0.9, '#ffffff', 0, 0.37, 0], [0.88, 0.1, 0.6, '#ff6fae', 0, 0.47, 0.15],
+    [0.6, 0.12, 0.22, '#ffffff', 0, 0.48, -0.3], [0.9, 0.62, 0.08, '#a57b4a', 0, 0.31, -0.46]] },
+  table: { name: 'Стіл', h: 1, parts: [[0.92, 0.08, 0.92, '#c79856', 0, 0.72, 0], [0.08, 0.68, 0.08, '#a57b4a', -0.38, 0.34, -0.38], [0.08, 0.68, 0.08, '#a57b4a', 0.38, 0.34, -0.38],
+    [0.08, 0.68, 0.08, '#a57b4a', -0.38, 0.34, 0.38], [0.08, 0.68, 0.08, '#a57b4a', 0.38, 0.34, 0.38], [0.16, 0.16, 0.16, '#ff6fae', 0, 0.84, 0]] },
+  chair: { name: 'Стілець', h: 1, parts: [[0.6, 0.08, 0.6, '#ff9fd2', 0, 0.45, 0], [0.6, 0.5, 0.08, '#ff9fd2', 0, 0.74, -0.26], [0.06, 0.42, 0.06, '#a57b4a', -0.24, 0.21, -0.24],
+    [0.06, 0.42, 0.06, '#a57b4a', 0.24, 0.21, -0.24], [0.06, 0.42, 0.06, '#a57b4a', -0.24, 0.21, 0.24], [0.06, 0.42, 0.06, '#a57b4a', 0.24, 0.21, 0.24]] },
+  sofa: { name: 'Диван', h: 1, parts: [[0.96, 0.32, 0.72, '#9a7bff', 0, 0.24, 0.04], [0.96, 0.46, 0.2, '#8466f0', 0, 0.56, -0.3], [0.14, 0.3, 0.72, '#8466f0', -0.42, 0.5, 0.04],
+    [0.14, 0.3, 0.72, '#8466f0', 0.42, 0.5, 0.04], [0.32, 0.1, 0.5, '#c9a8ff', -0.18, 0.45, 0.08], [0.32, 0.1, 0.5, '#c9a8ff', 0.18, 0.45, 0.08]] },
+  wardrobe: { name: 'Шафа', h: 2, parts: [[0.9, 1.9, 0.6, '#ffd6ea', 0, 0.95, -0.15], [0.03, 1.7, 0.03, '#c97aa0', 0, 0.95, 0.16], [0.06, 0.06, 0.04, '#f4c23f', -0.08, 1, 0.17],
+    [0.06, 0.06, 0.04, '#f4c23f', 0.08, 1, 0.17], [0.94, 0.08, 0.64, '#ff9fd2', 0, 1.9, -0.15]] },
+  lamp: { name: 'Торшер', h: 2, parts: [[0.4, 0.06, 0.4, '#2b2140', 0, 0.03, 0], [0.06, 1.2, 0.06, '#2b2140', 0, 0.66, 0], [0.5, 0.4, 0.5, '#fff3b0', 0, 1.4, 0, 1]] },
+  shelf: { name: 'Полиця з книжками', h: 2, parts: [[0.92, 1.9, 0.42, '#a57b4a', 0, 0.95, -0.24], [0.84, 0.04, 0.36, '#c79856', 0, 0.5, -0.2], [0.84, 0.04, 0.36, '#c79856', 0, 0.98, -0.2],
+    [0.84, 0.04, 0.36, '#c79856', 0, 1.46, -0.2]].concat([0.72, 1.2, 1.68].flatMap((y, r) => [0, 1, 2, 3, 4].map(i => [0.13, 0.32, 0.3, ['#e8333a', '#3d7be0', '#3bb54a', '#ffd23f', '#9a7bff'][(i + r) % 5], -0.3 + i * 0.15, y, -0.18]))) },
+  pot: { name: 'Вазон', h: 1, parts: [[0.4, 0.36, 0.4, '#c9764a', 0, 0.18, 0], [0.36, 0.04, 0.36, '#6b4426', 0, 0.37, 0], [0.56, 0.42, 0.56, '#3f9b3a', 0, 0.62, 0], [0.18, 0.18, 0.18, '#ff4f9a', 0.1, 0.88, 0.1], [0.14, 0.14, 0.14, '#ffd23f', -0.14, 0.82, -0.06]] },
+  tv: { name: 'Телевізор', h: 1, parts: [[0.86, 0.34, 0.5, '#c79856', 0, 0.17, 0], [0.92, 0.56, 0.1, '#2b2140', 0, 0.66, -0.1], [0.8, 0.44, 0.02, '#7cc8ff', 0, 0.66, -0.04, 1], [0.3, 0.2, 0.02, '#ff9fd2', -0.12, 0.62, -0.03, 1]] },
+  toybox: { name: 'Скриня з іграшками', h: 1, parts: [[0.8, 0.5, 0.6, '#ffd23f', 0, 0.25, 0], [0.84, 0.08, 0.64, '#ff8a1f', 0, 0.54, 0], [0.26, 0.26, 0.24, '#b08060', -0.15, 0.71, 0], [0.08, 0.08, 0.06, '#b08060', -0.25, 0.86, 0],
+    [0.08, 0.08, 0.06, '#b08060', -0.05, 0.86, 0], [0.18, 0.18, 0.18, '#3d7be0', 0.2, 0.67, 0.05]] },
+};
+const HOTBAR_FURN = Object.keys(FURNITURE).map(k => 'f:' + k);
+const glowCache = {};
+const MB = c => glowCache[c] || (glowCache[c] = new THREE.MeshBasicMaterial({ color: c }));
+// per world: base cell -> piece, and every occupied cell -> its base cell
+const furn = [new Map(), new Map()], furnCell = [new Map(), new Map()];
+function furnitureCells(x, y, z, type) { const out = []; for (let i = 0; i < FURNITURE[type].h; i++) out.push(I(x, y + i, z)); return out; }
+function addFurnitureRec(d, x, y, z, type, rot, gen) {
+  if (!FURNITURE[type] || d > D_CASTLE) return null;
+  const base = I(x, y, z);
+  if (furn[d].has(base)) return furn[d].get(base);
+  const rec = { d, x, y, z, type, rot: rot & 3, gen: !!gen, g: null };
+  furn[d].set(base, rec);
+  furnitureCells(x, y, z, type).forEach(c => { worlds[d][c] = FURN; furnCell[d].set(c, base); });
+  return rec;
+}
+function addGenFurniture(d, x, y, z, type, rot) { addFurnitureRec(d, x, y, z, type, rot, true); }
+function furnModel(rec) {
+  if (rec.g) return;
+  const g = new THREE.Group();
+  FURNITURE[rec.type].parts.forEach(([w, h, dd, c, x, y, z, glow]) => box(w, h, dd, c, x, y, z, g, glow ? MB(c) : undefined));
+  g.position.set(rec.x + .5, rec.y, rec.z + .5);
+  g.rotation.y = rec.rot * Math.PI / 2;
+  g.visible = false;
+  scene.add(g);
+  rec.g = g;
+}
+function removeFurnitureRec(d, base) {
+  const rec = furn[d].get(base);
+  if (!rec) return null;
+  if (rec.g) scene.remove(rec.g);
+  furnitureCells(rec.x, rec.y, rec.z, rec.type).forEach(c => { if (worlds[d][c] === FURN) worlds[d][c] = 0; furnCell[d].delete(c); if (rec.gen) editsByDim[d][c] = 0; });
+  furn[d].delete(base);
+  return rec;
+}
+function clearFurniture(d) { furn[d].forEach(rec => { if (rec.g) scene.remove(rec.g); }); furn[d].clear(); furnCell[d].clear(); }
+// after edits are applied, pieces whose cells were cleared are gone for good
+function settleFurniture() {
+  [0, 1].forEach(d => {
+    [...furn[d].values()].forEach(rec => { if (worlds[d][I(rec.x, rec.y, rec.z)] !== FURN) removeFurnitureRec(d, I(rec.x, rec.y, rec.z)); else furnModel(rec); });
+  });
+}
+function updateFurniture() {
+  [0, 1].forEach(d => furn[d].forEach(rec => {
+    if (!rec.g) return;
+    rec.g.visible = d === dim && Math.abs(rec.x - pl.p.x) < 70 && Math.abs(rec.z - pl.p.z) < 70;
+  }));
+}
+function furnIcon(type) {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const g = c.getContext('2d'), def = FURNITURE[type], H = def.h;
+  const sc = 26 / Math.max(1, H);
+  [...def.parts].sort((a, b) => (a[6] - a[2] / 2) - (b[6] - b[2] / 2)).forEach(([w, h, , col, x, y]) => {
+    g.fillStyle = col;
+    g.fillRect(16 + (x - w / 2) * sc, 29 - (y + h / 2) * sc, Math.max(1, w * sc), Math.max(1, h * sc));
+  });
+  return c;
+}
+function placeFurnitureByPlayer(hit, type) {
+  const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz, def = FURNITURE[type];
+  for (let i = 0; i < def.h; i++) {
+    if (!inB(x, y + i, z)) return;
+    const b = world[I(x, y + i, z)];
+    if (b && b !== WATER && !isPlant(b)) { toast('Тут замало місця'); return; }
+    if (overlapsPlayer(x, y + i, z)) { toast('Тут стоїть Ангеліна'); return; }
+  }
+  const rot = (Math.round(Math.atan2(pl.p.x - (x + .5), pl.p.z - (z + .5)) / (Math.PI / 2)) + 4) % 4;
+  const rec = addFurnitureRec(dim, x, y, z, type, rot, false);
+  furnModel(rec); rec.g.visible = true;
+  rebuildAround(x, z);
+  sfx.place();
+  scheduleSave();
+  netSend({ t: 'furn', op: 'add', d: dim, x, y, z, type, rot });
+}
+function breakFurniture(d, cell, fromNet) {
+  const base = furnCell[d].get(cell);
+  if (base === undefined) { worlds[d][cell] = 0; return; }
+  const rec = removeFurnitureRec(d, base);
+  if (!rec) return;
+  if (d === dim) { burst(rec.x, rec.y, rec.z, '#c79856', 10, FURNITURE[rec.type].parts.map(p => p[3])); rebuildAround(rec.x, rec.z); }
+  scheduleSave();
+  if (!fromNet) netSend({ t: 'furn', op: 'del', d, x: rec.x, y: rec.y, z: rec.z });
+}
+
+// ---------- signs ----------
+const labels = [];
+function addLabel(d, text, x, y, z, size = 1.6) {
+  const s = textSprite(text, size, 'rgba(255,79,154,.88)');
+  s.position.set(x, y, z);
+  s.visible = false;
+  scene.add(s);
+  labels.push({ d, s });
+}
+function clearLabels() { labels.forEach(l => scene.remove(l.s)); labels.length = 0; }
+function updateLabels() { labels.forEach(l => { l.s.visible = l.d === dim && Math.hypot(l.s.position.x - pl.p.x, l.s.position.z - pl.p.z) < 80; }); }
+
+// ---------- Angelina's house next to where she starts ----------
+const HOUSE = { x0: CX + 7, x1: CX + 15, z0: CZ - 2, z1: CZ + 4 };
+function buildHouse() {
+  const { x0, x1, z0, z1 } = HOUSE, h = heightAt(CX + 11, CZ + 1);
+  fillBox(x0 - 1, h + 1, z0 - 1, x1 + 1, h + 12, z1 + 1, 0);
+  fillBox(x0, h, z0, x1, h, z1, PLANKS);
+  fillBox(x0, h + 1, z0, x1, h + 5, z1, W_PINK);
+  fillBox(x0 + 1, h + 1, z0 + 1, x1 - 1, h + 5, z1 - 1, 0);
+  fillBox(x0 + 3, h, z0 + 2, x1 - 3, h, z1 - 2, CARPET);
+  fillBox(x0, h + 1, CZ + 1, x0, h + 3, CZ + 2, 0);
+  [[x0 + 2, z0], [x1 - 2, z0], [x0 + 2, z1], [x1 - 2, z1]].forEach(([x, z]) => fillBox(x, h + 2, z, x, h + 3, z, ICE));
+  [CZ, CZ + 2].forEach(z => fillBox(x1, h + 2, z, x1, h + 3, z, ICE));
+  [x0 + 3, x1 - 3].forEach(x => setB(x, h + 5, z0, LANTERN));
+  for (let j = 0; x0 - 1 + j <= x1 + 1 - j && z0 - 1 + j <= z1 + 1 - j; j++) fillBox(x0 - 1 + j, h + 6 + j, z0 - 1 + j, x1 + 1 - j, h + 6 + j, z1 + 1 - j, ROOF);
+  [[x0 - 1, CZ - 1], [x0 - 1, CZ + 4]].forEach(([x, z]) => setB(x, h + 1, z, FLOWERS[(x + z) % FLOWERS.length]));
+  addGenFurniture(D_MAIN, x1 - 1, h + 1, z0 + 1, 'bed', 0);
+  addGenFurniture(D_MAIN, x1 - 2, h + 1, z0 + 1, 'bed', 0);
+  addGenFurniture(D_MAIN, x1 - 1, h + 1, z1 - 1, 'wardrobe', 3);
+  addGenFurniture(D_MAIN, x1 - 3, h + 1, z1 - 1, 'shelf', 2);
+  addGenFurniture(D_MAIN, CX + 11, h + 1, CZ + 1, 'table', 0);
+  addGenFurniture(D_MAIN, CX + 10, h + 1, CZ + 1, 'chair', 1);
+  addGenFurniture(D_MAIN, CX + 12, h + 1, CZ + 1, 'chair', 3);
+  addGenFurniture(D_MAIN, x0 + 1, h + 1, z0 + 1, 'lamp', 0);
+  addGenFurniture(D_MAIN, x0 + 3, h + 1, z0 + 1, 'tv', 0);
+  addGenFurniture(D_MAIN, x0 + 1, h + 1, z1 - 1, 'pot', 0);
+  addGenFurniture(D_MAIN, x0 + 4, h + 1, z1 - 1, 'sofa', 2);
+  addGenFurniture(D_MAIN, x1 - 4, h + 1, z0 + 1, 'toybox', 0);
+  HOUSE.h = h;
+}
+
+// ---------- villages ----------
+const VILLAGE_NAMES = ['Ромашкове', 'Сонячне', 'Яблунівка', 'Медове', 'Зірочка', 'Веселкове'];
+const VR = 22;
+const villages = VILLAGE_NAMES.map((name, i) => {
+  const a = i / VILLAGE_NAMES.length * Math.PI * 2 + 0.35, r = i % 2 ? 178 : 134;
+  return { name, x: Math.round(CX + Math.cos(a) * r), z: Math.round(CZ + Math.sin(a) * r), h: 0 };
+});
+function computeVillageHeights() {
+  villages.forEach(v => {
+    let s = 0;
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2; s += rawHeight(v.x + Math.cos(a) * 14, v.z + Math.sin(a) * 14); }
+    v.h = clamp(Math.round(s / 16), SEA + 2, 28);
+  });
+}
+function villageHeight(x, z, h) {
+  for (const v of villages) {
+    const d = Math.hypot(x - v.x, z - v.z);
+    if (d < VR) return v.h;
+    if (d < VR + 10) { const k = (d - VR) / 10; return v.h * (1 - k) + h * k; }
+  }
+  return h;
+}
+const nearVillage = (x, z, pad) => villages.some(v => Math.hypot(x - v.x, z - v.z) < VR + pad);
+const villageAt = (x, z) => villages.find(v => Math.hypot(x - v.x, z - v.z) < VR + 3);
+const VSTYLE = {
+  [MEADOW]: { wall: PLANKS, roof: BRICK }, [FOREST]: { wall: LOG, roof: BRICK }, [DESERT]: { wall: SANDSTONE, roof: W_ORANGE },
+  [SNOWY]: { wall: LOG, roof: SNOW }, [CANDYLAND]: { wall: W_WHITE, roof: ROOF },
+};
+function buildCottage(cx, h, cz, v, st, k) {
+  const w = k % 2 ? 3 : 2, d = 2;
+  const dx = v.x - cx, dz = v.z - cz, alongX = Math.abs(dx) > Math.abs(dz);
+  fillBox(cx - w - 1, h + 1, cz - d - 1, cx + w + 1, h + 10, cz + d + 1, 0);
+  fillBox(cx - w, h, cz - d, cx + w, h, cz + d, PLANKS);
+  fillBox(cx - w, h + 1, cz - d, cx + w, h + 4, cz + d, st.wall);
+  fillBox(cx - w + 1, h + 1, cz - d + 1, cx + w - 1, h + 4, cz + d - 1, 0);
+  let door, back;
+  if (alongX) { const sx = dx > 0 ? cx + w : cx - w; door = [sx + Math.sign(dx), cz]; fillBox(sx, h + 1, cz, sx, h + 2, cz, 0); back = [dx > 0 ? cx - w : cx + w, cz]; }
+  else { const sz = dz > 0 ? cz + d : cz - d; door = [cx, sz + Math.sign(dz)]; fillBox(cx, h + 1, sz, cx, h + 2, sz, 0); back = [cx, dz > 0 ? cz - d : cz + d]; }
+  setB(back[0], h + 2, back[1], ICE);
+  setB(back[0], h + 4, back[1], LANTERN);
+  if (alongX) { setB(cx, h + 2, cz - d, ICE); setB(cx, h + 2, cz + d, ICE); } else { setB(cx - w, h + 2, cz, ICE); setB(cx + w, h + 2, cz, ICE); }
+  for (let j = 0; cx - w - 1 + j <= cx + w + 1 - j && cz - d - 1 + j <= cz + d + 1 - j; j++) fillBox(cx - w - 1 + j, h + 5 + j, cz - d - 1 + j, cx + w + 1 - j, h + 5 + j, cz + d + 1 - j, st.roof);
+  const bx = clamp(back[0], cx - w + 1, cx + w - 1), bz = clamp(back[1], cz - d + 1, cz + d - 1);
+  const ax = alongX ? bx : cx - w + 1, az = alongX ? cz - d + 1 : bz;
+  addGenFurniture(D_MAIN, ax, h + 1, az, 'bed', alongX ? (dx > 0 ? 1 : 3) : (dz > 0 ? 0 : 2));
+  addGenFurniture(D_MAIN, alongX ? bx : cx + w - 1, h + 1, alongX ? cz + d - 1 : bz, k % 3 ? 'pot' : 'table', 0);
+  return door;
+}
+function buildVillages() {
+  villages.forEach((v, vi) => {
+    const st = VSTYLE[biomeAt(v.x, v.z)] || VSTYLE[MEADOW], h = v.h;
+    for (let dz = -VR; dz <= VR; dz++) for (let dx = -VR; dx <= VR; dx++) if (Math.hypot(dx, dz) <= VR) fillBox(v.x + dx, h + 1, v.z + dz, v.x + dx, h + 9, v.z + dz, 0);
+    // well with a little roof
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      if (dx || dz) { setB(v.x + dx, h, v.z + dz, STONE); setB(v.x + dx, h + 1, v.z + dz, STONE); } else { setB(v.x, h, v.z, WATER); setB(v.x, h - 1, v.z, WATER); }
+    }
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => fillBox(v.x + dx, h + 2, v.z + dz, v.x + dx, h + 3, v.z + dz, LOG));
+    fillBox(v.x - 1, h + 4, v.z - 1, v.x + 1, h + 4, v.z + 1, st.roof);
+    const doors = [];
+    for (let k = 0; k < 6; k++) {
+      const a = k / 6 * Math.PI * 2 + vi;
+      doors.push(buildCottage(Math.round(v.x + Math.cos(a) * 12), h, Math.round(v.z + Math.sin(a) * 12), v, st, k));
+    }
+    // gravel paths from the well to every door
+    doors.forEach(([tx, tz]) => {
+      const n = Math.ceil(Math.hypot(tx - v.x, tz - v.z));
+      for (let i = 2; i <= n; i++) {
+        const x = Math.round(v.x + (tx - v.x) * i / n), z = Math.round(v.z + (tz - v.z) * i / n);
+        if (get(x, h + 1, z) && !isPlant(get(x, h + 1, z))) continue;
+        setB(x, h, z, GRAVEL); setB(x, h + 1, z, 0);
+      }
+    });
+    [[5, 0], [-5, 0], [0, 5], [0, -5]].forEach(([dx, dz]) => { fillBox(v.x + dx, h + 1, v.z + dz, v.x + dx, h + 2, v.z + dz, LOG); setB(v.x + dx, h + 3, v.z + dz, LANTERN); });
+    // two wheat fields at the edge
+    [0, Math.PI].forEach(off => {
+      const a = vi * 1.3 + off + 0.5, fx = Math.round(v.x + Math.cos(a) * 19), fz = Math.round(v.z + Math.sin(a) * 19);
+      for (let dz = -2; dz <= 2; dz++) for (let dx = -3; dx <= 3; dx++) {
+        if (get(fx + dx, h + 1, fz + dz) && !isPlant(get(fx + dx, h + 1, fz + dz))) continue;
+        setB(fx + dx, h, fz + dz, DIRT);
+        setB(fx + dx, h + 1, fz + dz, (dz & 1) ? 0 : WHEAT);
+      }
+    });
+  });
+}
+function addPlaceLabels() {
+  clearLabels();
+  addLabel(D_MAIN, 'Будиночок Ангеліни', HOUSE.x0 - 0.5, HOUSE.h + 9, CZ + 1.5, 1.7);
+  villages.forEach(v => addLabel(D_MAIN, `Село ${v.name}`, v.x + .5, v.h + 7.5, v.z + .5, 2));
+}
+
+function playerFurniture() {
+  const out = [];
+  [0, 1].forEach(d => furn[d].forEach(r => { if (!r.gen) out.push([d, r.x, r.y, r.z, r.type, r.rot]); }));
+  return out;
+}
+function loadFurniture(list) {
+  (Array.isArray(list) ? list : []).forEach(e => {
+    if (!Array.isArray(e) || e.length !== 6) return;
+    const [d, x, y, z, type, rot] = e;
+    if ((d === 0 || d === 1) && [x, y, z].every(Number.isInteger) && inB(x, y, z) && FURNITURE[type]) addFurnitureRec(d, x, y, z, type, rot | 0, false);
+  });
+}
+
 // ---------- Angelina & her wardrobe ----------
 const SKIN = '#f3c9a8', HAIR = '#16110f';
 const WARDROBE = {
@@ -1206,6 +1538,9 @@ const WARDROBE = {
     { id: 'princess', name: 'Сукня принцеси', sw: '#c9a8ff', top: '#d9c2ff', skirt: '#b388ff', legs: '#b388ff', sleeve: '#efe4ff', long: true, trim: '#f4c23f' },
     { id: 'winter', name: 'Зимова куртка', sw: '#e8333a', top: '#e8333a', legs: '#2b2140', sleeve: '#e8333a', jacket: true, trim: '#ffffff' },
     { id: 'sport', name: 'Спортивний костюм', sw: '#3bb54a', top: '#3bb54a', legs: '#3bb54a', sleeve: '#3bb54a', stripes: '#ffffff' },
+    { id: 'sunny', name: 'Платтячко-сонечко', sw: '#ffd23f', top: '#ffe066', skirt: '#ffb703', legs: '#ffffff', sleeve: '#ffe066', heart: true },
+    { id: 'pajama', name: 'Піжама з зірочками', sw: '#3a4a8c', top: '#3a4a8c', legs: '#3a4a8c', sleeve: '#3a4a8c', stars: true },
+    { id: 'unicorn', name: 'Костюм єдинорога', sw: '#e9dcff', top: '#f6f0ff', skirt: '#c9a8ff', legs: '#f6f0ff', sleeve: '#f6f0ff', rainbow: true },
   ] },
   shoes: { title: 'Взуття', items: [
     { id: 'white', name: 'Білі кросівки', sw: '#ffffff', c: '#ffffff' },
@@ -1213,10 +1548,11 @@ const WARDROBE = {
     { id: 'red', name: 'Червоні', sw: '#e8333a', c: '#e8333a' },
     { id: 'boots', name: 'Чобітки', sw: '#7a5230', c: '#7a5230', tall: true },
     { id: 'gold', name: 'Золоті', sw: '#f4c23f', c: '#f4c23f' },
+    { id: 'sparkle', name: 'Блискучі', sw: '#c9a8ff', c: '#c9a8ff' },
   ] },
   hat: { title: 'На голову', items: [
     { id: 'bow', name: 'Бантик' }, { id: 'none', name: 'Нічого' }, { id: 'hat', name: 'Капелюшок' },
-    { id: 'beanie', name: 'Шапка з помпоном' }, { id: 'bunny', name: 'Вушка зайчика' }, { id: 'cat', name: 'Котячі вушка' }, { id: 'flowers', name: 'Віночок' },
+    { id: 'beanie', name: 'Шапка з помпоном' }, { id: 'bunny', name: 'Вушка зайчика' }, { id: 'cat', name: 'Котячі вушка' }, { id: 'flowers', name: 'Віночок' }, { id: 'unihorn', name: 'Ріжок єдинорога' }, { id: 'tiara', name: 'Діадема' },
   ] },
   hairColor: { title: 'Колір волосся', items: [
     { id: 'black', name: 'Чорне', sw: '#16110f', c: '#16110f' }, { id: 'brown', name: 'Каштанове', sw: '#5a3820', c: '#5a3820' },
@@ -1268,6 +1604,8 @@ function buildAvatar(o, d) {
   if (D.star) { box(0.12, 0.04, 0.02, '#ff8a1f', 0, 0.96, 0.155, body); box(0.04, 0.12, 0.02, '#ff8a1f', 0, 0.96, 0.155, body); }
   if (D.bib) { box(0.34, 0.26, 0.02, D.bib, 0, 0.84, 0.155, body); box(0.06, 0.18, 0.02, D.bib, -0.14, 1.04, 0.155, body); box(0.06, 0.18, 0.02, D.bib, 0.14, 1.04, 0.155, body); }
   if (D.jacket) { box(0.03, 0.42, 0.02, D.trim, 0, 0.92, 0.155, body); box(0.54, 0.07, 0.34, D.trim, 0, 1.12, 0, body); }
+  if (D.stars) [[-0.12, 1.02, 0.155], [0.1, 0.84, 0.155], [-0.05, 0.76, 0.155], [0.13, 1.05, 0.155]].forEach(([x, y, z]) => box(0.05, 0.05, 0.02, '#ffd23f', x, y, z, body));
+  if (D.rainbow) ['#ff6fae', '#ffd23f', '#7cc8ff', '#9a7bff'].forEach((c, i) => box(0.3, 0.03, 0.02, c, 0, 1.0 - i * 0.04, 0.155, body));
   if (D.stripes) { box(0.02, 0.42, 0.04, D.stripes, -0.25, 0.92, 0, body); box(0.02, 0.42, 0.04, D.stripes, 0.25, 0.92, 0, body); }
   arms = [-0.33, 0.33].map(x => {
     const p = pivot(x, 1.1, 0, body);
@@ -1309,6 +1647,8 @@ function buildAvatar(o, d) {
     if (hat === 'beanie') { box(0.62, 0.22, 0.58, '#6fb7ff', 0, 1.7, 0, body); box(0.64, 0.06, 0.6, '#ffffff', 0, 1.61, 0, body); box(0.16, 0.16, 0.16, '#ffffff', 0, 1.88, 0, body); }
     if (hat === 'bunny') [-0.14, 0.14].forEach(x => { box(0.1, 0.34, 0.06, '#ffffff', x, 1.88, 0, body); box(0.05, 0.24, 0.01, '#ffb6c8', x, 1.87, 0.035, body); });
     if (hat === 'cat') [-0.18, 0.18].forEach(x => { box(0.14, 0.14, 0.06, HAIR, x, 1.78, 0.02, body); box(0.07, 0.08, 0.01, '#ff9db4', x, 1.77, 0.055, body); });
+    if (hat === 'unihorn') { box(0.08, 0.26, 0.08, '#ffd23f', 0, 1.82, 0.16, body).rotation.x = 0.25; box(0.1, 0.1, 0.05, '#f6f0ff', -0.2, 1.76, 0.02, body); box(0.1, 0.1, 0.05, '#f6f0ff', 0.2, 1.76, 0.02, body); }
+    if (hat === 'tiara') { box(0.5, 0.05, 0.05, '#dfe4ee', 0, 1.69, 0.22, body); box(0.08, 0.1, 0.04, '#dfe4ee', 0, 1.75, 0.22, body); box(0.05, 0.05, 0.03, '#ff4f9a', 0, 1.75, 0.245, body); }
     if (hat === 'flowers') for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; box(0.1, 0.08, 0.1, ['#ff4040', '#ffd23f', '#ffffff', '#4a7bff'][i % 4], Math.sin(a) * 0.28, 1.72, Math.cos(a) * 0.26, body); }
   }
   if (gl !== 'none') {
@@ -1526,6 +1866,53 @@ function buildFlamingo() {
   const legs = [-0.07, 0.07].map(x => { const p = pivot(x, 0.84, 0, g); box(0.04, 0.82, 0.04, '#e86a9a', 0, -0.41, 0, p); box(0.1, 0.03, 0.12, '#e86a9a', 0, -0.82, 0.03, p); return p; });
   return { g, legs };
 }
+function buildPuppy(m) {
+  const g = new THREE.Group();
+  const [C, E, S] = [['#f4e3c8', '#b07a4a', '#ffffff'], ['#f7f7f7', '#2b2630', '#ffffff'], ['#c9955e', '#7a5230', '#f4e3c8']][m.id % 3];
+  box(0.3, 0.28, 0.5, C, 0, 0.34, 0, g);
+  if (m.id % 3 === 1) { box(0.1, 0.02, 0.1, E, 0.08, 0.485, 0.05, g); box(0.08, 0.02, 0.08, E, -0.06, 0.485, -0.12, g); }
+  box(0.3, 0.28, 0.28, C, 0, 0.52, 0.32, g);
+  box(0.16, 0.12, 0.12, S, 0, 0.45, 0.5, g);
+  box(0.06, 0.05, 0.03, '#1a1a1a', 0, 0.49, 0.565, g);
+  box(0.05, 0.06, 0.02, '#ff8fa8', 0, 0.39, 0.56, g);
+  box(0.08, 0.22, 0.12, E, -0.18, 0.5, 0.3, g); box(0.08, 0.22, 0.12, E, 0.18, 0.5, 0.3, g);
+  eyePair(g, 0.56, 0.465, 0.08, 0.05);
+  box(0.06, 0.06, 0.24, C, 0, 0.5, -0.32, g).rotation.x = -0.8;
+  return { g, legs: legSet(g, [[-0.09, 0.16], [0.09, 0.16], [-0.09, -0.16], [0.09, -0.16]], 0.08, 0.2, C) };
+}
+function buildPony(m) {
+  const g = new THREE.Group(), b = new THREE.Group();
+  g.add(b);
+  const [W, MANE] = [['#f7d6e8', ['#ff6fae', '#c9a8ff']], ['#c9e6ff', ['#3d7be0', '#ffffff']], ['#fff2b3', ['#ff8a1f', '#ffd23f']], ['#d9c2ff', ['#9a7bff', '#ff9fd2']]][m.id % 4];
+  box(0.45, 0.42, 0.85, W, 0, 0.85, 0, b);
+  box(0.24, 0.44, 0.26, W, 0, 1.16, 0.38, b).rotation.x = 0.35;
+  box(0.28, 0.28, 0.44, W, 0, 1.38, 0.56, b);
+  box(0.05, 0.07, 0.02, '#3a2f5c', -0.145, 1.42, 0.66, b); box(0.05, 0.07, 0.02, '#3a2f5c', 0.145, 1.42, 0.66, b);
+  box(0.06, 0.1, 0.06, W, -0.08, 1.56, 0.44, b); box(0.06, 0.1, 0.06, W, 0.08, 1.56, 0.44, b);
+  for (let i = 0; i < 5; i++) box(0.1, 0.13, 0.12, MANE[i % 2], 0, 1.52 - i * 0.12, 0.4 - i * 0.07, b);
+  for (let i = 0; i < 4; i++) box(0.11, 0.12, 0.11, MANE[i % 2], 0, 0.96 - i * 0.11, -0.47 - i * 0.04, b);
+  const legs = [[-0.15, 0.3], [0.15, 0.3], [-0.15, -0.3], [0.15, -0.3]].map(([x, z]) => {
+    const p = pivot(x, 0.66, z, b);
+    box(0.13, 0.58, 0.13, W, 0, -0.29, 0, p);
+    box(0.14, 0.08, 0.14, '#7a5230', 0, -0.62, 0, p);
+    return p;
+  });
+  b.scale.setScalar(0.8);
+  return { g, legs };
+}
+const VILLAGER_NAMES = ['Оксанка', 'Марічка', 'Тарасик', 'Петрик', 'Соломійка', 'Іванко', 'Дарка', 'Остапчик', 'Христинка', 'Богданчик', 'Зеня', 'Лукаш'];
+const VILLAGER_SAY = ['Привіт, Ангеліно!', 'Гарна сьогодні погода!', 'Заходь у гості!', 'Ти бачила мого котика?', 'У нас найсмачніші пиріжки!', 'Тут поруч є сердечко!', 'Дякую, що завітала!'];
+function buildVillager(m) {
+  const g = new THREE.Group();
+  const o = {};
+  Object.keys(WARDROBE).forEach((cat, k) => { const items = WARDROBE[cat].items; o[cat] = items[Math.floor(hash(m.id, k, 901) * items.length)].id; });
+  if (o.hat === 'bunny' || o.hat === 'cat') o.hat = 'none';
+  const parts = buildAvatar(o, D_MAIN);
+  parts.blaster.visible = false;
+  g.add(parts.body);
+  parts.body.scale.setScalar(0.95 + hash(m.id, 9, 902) * 0.2);
+  return { g, legs: parts.legs, arms: [] };
+}
 const DUCK_BREEDS = [
   { id: 'mallard', name: 'крижень', body: '#a0826d', head: '#2e7d4f', collar: '#ffffff', beak: '#f2c94c', baby: '#e6c25a' },
   { id: 'pekin', name: 'біла пекінська', body: '#f7f4ec', head: '#f7f4ec', beak: '#ff9f1c', baby: '#ffe066' },
@@ -1572,6 +1959,9 @@ const MOB_TYPES = {
   hedgehog: { name: 'Їжачок',     build: buildHedgehog, speed: 1.0, hw: 0.2, h: 0.4,  say: 'Пих-пих!' },
   bear:     { name: 'Ведмежа',    build: buildBear,    speed: 1.6, hw: 0.28, h: 1.1,  say: 'Ур-р-р!' },
   flamingo: { name: 'Фламінго',   build: buildFlamingo, speed: 1.3, hw: 0.2, h: 1.6,  say: 'Ґа-ґа!', swims: true },
+  puppy:    { name: 'Цуценя',     build: buildPuppy,   speed: 2.6, hw: 0.2,  h: 0.7,  say: 'Гав-гав!' },
+  pony:     { name: 'Поні',       build: buildPony,    speed: 2.2, hw: 0.28, h: 1.3,  say: 'І-го-го!' },
+  villager: { name: 'Житель',     build: buildVillager, speed: 1.3, hw: 0.28, h: 1.7, say: '' },
   duck:     { name: 'Качка',      build: m => buildDuck(m, false), speed: 1.6, hw: 0.2, h: 0.6, say: 'Кря-кря!', swims: true },
   duckling: { name: 'Каченя',     build: m => buildDuck(m, true),  speed: 2.4, hw: 0.12, h: 0.35, say: 'Пі-пі-пі!', swims: true },
 };
@@ -1589,24 +1979,30 @@ const PET_NAMES = {
   flamingo: ['Фламі', 'Рожевинка', 'Довгоніжка', 'Пір\'ячко'],
   duck: ['Кряка', 'Плюшка', 'Хвилька', 'Пірнайка'],
   duckling: ['Пушок', 'Жовтик', 'Кульбабка', 'Пір\'їнка', 'Крихітка', 'Сонечко'],
+  puppy: ['Бім', 'Тузик', 'Ласка', 'Плямка', 'Рекс', 'Булька'],
+  pony: ['Зорька', 'Карамелька', 'Іскра', 'Хмаринка'],
+  villager: VILLAGER_NAMES,
 };
 const SPAWN = {
-  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep'],
+  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep', 'puppy', 'pony'],
   [FOREST]: ['bunny', 'fox', 'hedgehog', 'bear'],
   [DESERT]: ['turtle', 'flamingo'],
   [SNOWY]: ['penguin', 'penguin', 'fox', 'bear', 'bunny'],
   [CANDYLAND]: ['unicorn', 'unicorn', 'piglet'],
 };
-const SPAWN_MAX = { cat: 14, bunny: 18, penguin: 14, turtle: 12, unicorn: 14, sheep: 18, piglet: 14, fox: 12, hedgehog: 12, bear: 12, flamingo: 10 };
+const SPAWN_MAX = { cat: 20, bunny: 24, penguin: 18, turtle: 16, unicorn: 18, sheep: 24, piglet: 18, fox: 16, hedgehog: 14, bear: 14, flamingo: 14, puppy: 16, pony: 14 };
 let mobs = [], mobGroups = [];
 const friends = new Set();
 const friendHeartMat = new THREE.MeshLambertMaterial({ color: 0xff6fae, emissive: 0x99204f });
+const blobGeo = new THREE.CircleGeometry(0.5, 16), blobMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
 function addMob(type, x, z, d = 0, extra = {}) {
   const def = MOB_TYPES[type], id = mobs.length;
   const m = Object.assign({ id, type, def, dim: d, facing: hash(id, 1, 40) * 6.28, dir: 0, timer: 0, walking: false, phase: 0, badge: null,
     nick: PET_NAMES[type][id % PET_NAMES[type].length] }, extra);
   const parts = def.build(m);
   m.g = parts.g; m.legs = parts.legs || []; m.arms = parts.arms || []; m.waddle = !!parts.waddle;
+  // a soft round shadow under every animal
+  const sh = new THREE.Mesh(blobGeo, blobMat); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.03; sh.scale.setScalar(def.hw * 2.6); m.g.add(sh);
   m.g.traverse(o => { o.userData.mobId = id; });
   scene.add(m.g);
   m.e = { p: new THREE.Vector3(x + .5, withDim(d, () => surfaceY(x, z)) + 0.01, z + .5), vel: new THREE.Vector3(), hw: def.hw, h: def.h, onGround: false, blocked: false, jumpV: 7.5, float: true };
@@ -1630,9 +2026,11 @@ function spawnMobs() {
   addMob('bunny', CX - 5, CZ + 2);
   addMob('sheep', CX + 6, CZ - 6);
   addMob('piglet', CX - 6, CZ - 4);
+  addMob('puppy', CX - 3, CZ + 6);
+  villages.forEach((v, vi) => { for (let k = 0; k < 5; k++) { const a = k * 1.25 + vi; addMob('villager', Math.round(v.x + Math.cos(a) * 6), Math.round(v.z + Math.sin(a) * 6), 0, { home: v }); } addMob(['puppy', 'cat', 'pony'][vi % 3], v.x + 3, v.z + 7); });
   const count = {};
   let k = 0;
-  while (mobs.length < 170 && k < 30000) {
+  while (mobs.length < 300 && k < 40000) {
     k++;
     const x = 3 + Math.floor(hash(k, 7, 31) * (SX - 6)), z = 3 + Math.floor(hash(k, 9, 33) * (SZ - 6));
     const bi = biomeMaps[0][x + z * SX], list = SPAWN[bi];
@@ -1642,7 +2040,7 @@ function spawnMobs() {
     const sy = withDim(0, () => surfaceY(x, z)), below = worlds[0][I(x, sy - 1, z)];
     if (worlds[0][I(x, sy, z)] === WATER || below === LEAVES || below === PINE || below === PINKLEAVES || below === CACTUS) continue;
     if (type === 'flamingo' && below !== SAND) continue;
-    if (mobs.some(m => Math.abs(m.e.p.x - x) + Math.abs(m.e.p.z - z) < 5)) continue;
+    if (nearVillage(x, z, 2) || mobs.some(m => Math.abs(m.e.p.x - x) + Math.abs(m.e.p.z - z) < 5)) continue;
     count[type] = (count[type] || 0) + 1;
     addMob(type, x, z, 0, { variant: bi === SNOWY ? (type === 'fox' ? 'arctic' : 'polar') : '' });
   }
@@ -1675,13 +2073,13 @@ function spawnDucks() {
   });
 }
 function spawnCastleMobs() {
-  [[CX - 30, CZ + 56, 'unicorn'], [CX + 32, CZ + 58, 'unicorn'], [CX - 60, CZ - 10, 'unicorn'], [CX + 60, CZ + 6, 'unicorn'],
-   [CX - 40, CZ - 40, 'sheep'], [CX + 42, CZ - 36, 'sheep'], [CX - 6, CZ + 10, 'cat'], [CX + 7, CZ + 12, 'cat'],
-   [CX + 36, CZ + 20, 'flamingo'], [CX - 36, CZ + 18, 'piglet']].forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
-  addMob('bunny', CX + 4, CZ - 5, D_CASTLE).e.p.y = KH + 1.01;
-  const mom = addMob('duck', CX + 27, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
+  [[CX - 40, CZ + 70, 'unicorn'], [CX + 42, CZ + 74, 'unicorn'], [CX - 70, CZ - 10, 'unicorn'], [CX + 70, CZ + 6, 'unicorn'], [CX - 60, CZ - 50, 'pony'], [CX + 60, CZ - 52, 'pony'],
+   [CX - 50, CZ - 60, 'sheep'], [CX + 52, CZ - 56, 'sheep'], [CX - 8, CZ + 12, 'cat'], [CX + 9, CZ + 16, 'puppy'], [CX - 15, CZ + 22, 'bunny'],
+   [CX + 48, CZ + 30, 'flamingo'], [CX - 48, CZ + 28, 'piglet']].forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
+  addMob('bunny', CX + 4, CZ - 8, D_CASTLE).e.p.y = KH + 1.01;
+  const mom = addMob('duck', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
   mom.e.p.y = KH + 0.4;
-  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 27, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 27.5, KH + 0.4, CZ + 1 + i * 0.6); }
+  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 39.5, KH + 0.4, CZ + 1 + i * 0.6); }
 }
 function bringToPlayer(m) {
   const a = Math.random() * Math.PI * 2, r = 1.5 + Math.random();
@@ -1706,7 +2104,11 @@ function updateMob(m, dt) {
     else if (md > 1.1 + (m.id % 4) * 0.35) { mx = ddx / md; mz = ddz / md; }
   } else {
     m.timer -= dt;
-    if (m.timer <= 0) { m.walking = Math.random() < 0.6; m.dir = Math.random() * Math.PI * 2; m.timer = 1.5 + Math.random() * 3.5; }
+    if (m.timer <= 0) {
+      m.walking = Math.random() < 0.6; m.dir = Math.random() * Math.PI * 2; m.timer = 1.5 + Math.random() * 3.5;
+      // villagers stroll around their own village
+      if (m.home && Math.hypot(m.home.x - e.p.x, m.home.z - e.p.z) > 14) m.dir = Math.atan2(m.home.x - e.p.x, m.home.z - e.p.z);
+    }
     if (m.walking) {
       mx = Math.sin(m.dir); mz = Math.cos(m.dir);
       const nx = Math.floor(e.p.x + mx * 0.8), nz = Math.floor(e.p.z + mz * 0.8), fy = Math.floor(e.p.y);
@@ -1742,6 +2144,12 @@ function release(m) {
 }
 function pet(m) {
   const p = m.e.p;
+  if (m.type === 'villager') {
+    m.facing = Math.atan2(pl.p.x - p.x, pl.p.z - p.z); m.timer = 2; m.walking = false;
+    sfx.pet();
+    toast(`${m.nick}: ${VILLAGER_SAY[(m.id + Math.floor(performance.now() / 4000)) % VILLAGER_SAY.length]}`, 2200);
+    return;
+  }
   floatHeart(p.x, p.y + m.def.h + 0.2, p.z);
   if (!friends.has(m.id)) {
     friends.add(m.id); makeFriendBadge(m); updateStats(); scheduleSave();
@@ -1963,6 +2371,8 @@ function tapAt(cx, cy, place) {
   if (!hit) return;
   if (dim === D_ART) { artTap(hit, place); return; }
   if (dim > D_CASTLE) return;
+  if (place && typeof hotbar[selected] === 'string') { placeFurnitureByPlayer(hit, hotbar[selected].slice(2)); return; }
+  if (!place && world[I(hit.x, hit.y, hit.z)] === FURN) { breakFurniture(dim, I(hit.x, hit.y, hit.z), false); sfx.brk(); return; }
   if (place) {
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
     if (!inB(x, y, z)) return;
@@ -2016,7 +2426,7 @@ function makePortal(frame, top, a, b, label) {
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 3.2), mat);
   plane.position.y = 1.7;
   g.add(plane);
-  if (label) { const s = textSprite(label, 2.6, 'rgba(106,76,255,.88)'); s.position.y = 5.4; g.add(s); }
+  if (label) { const s = textSprite(label, 2, 'rgba(106,76,255,.88)'); s.position.y = 5.2; g.add(s); }
   g.visible = false;
   scene.add(g);
   return { g, mat };
@@ -2024,15 +2434,19 @@ function makePortal(frame, top, a, b, label) {
 // side: which side of the portal you step out on (+1 south, -1 north)
 const PORTALS = [
   { dim: D_MAIN, to: D_CASTLE, x: CX, z: CZ - 5, side: 1, open: false, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'До замку') },
-  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 36, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
-  { dim: D_CASTLE, to: D_RACE, x: CX - 14, z: CZ + 46, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
-  { dim: D_CASTLE, to: D_ART, x: CX, z: CZ + 50, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
-  { dim: D_CASTLE, to: D_ARENA, x: CX + 14, z: CZ + 46, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
+  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 50, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
+  { dim: D_CASTLE, to: D_RACE, x: CX - 28, z: CZ + 62, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
+  { dim: D_CASTLE, to: D_ART, x: CX - 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
+  { dim: D_CASTLE, to: D_ARENA, x: CX, z: CZ + 66, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
+  { dim: D_CASTLE, to: D_HIDE, x: CX + 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3f9b3a', '#ffd23f', '#5cbf4f', '#c9f29b', 'Хованки') },
+  { dim: D_CASTLE, to: D_JUMP, x: CX + 28, z: CZ + 62, side: -1, open: true, ...makePortal('#7cc8ff', '#ffffff', '#9ad8ff', '#ffffff', 'Стрибки по хмаринках') },
 ];
 const GAME_START = {
   [D_RACE]: { x: CX, z: CZ, face: 0, yaw: Math.PI },
   [D_ART]: { x: CX, z: CZ + 1, face: Math.PI, yaw: 0, pitch: 0.12 },
   [D_ARENA]: { x: CX, z: CZ + 22, face: Math.PI, yaw: 0 },
+  [D_HIDE]: () => hideStart(),
+  [D_JUMP]: () => jumpStart(),
 };
 function placePortal(P) {
   withDim(P.dim, () => {
@@ -2046,9 +2460,17 @@ function placePortal(P) {
   P.g.position.set(P.x + .5, P.gy, P.z + .5);
 }
 function arrivalFor(to, from) {
-  if (GAME_START[to]) return GAME_START[to];
+  if (GAME_START[to]) return typeof GAME_START[to] === 'function' ? GAME_START[to]() : GAME_START[to];
   const P = PORTALS.find(p => p.dim === to && p.to === from) || PORTALS.find(p => p.dim === to);
   return { x: P.x, z: P.z + P.side * 3, face: P.side > 0 ? 0 : Math.PI, yaw: P.side > 0 ? Math.PI : 0 };
+}
+// a game's world is built on the way in and dropped on the way out, so only the two big worlds stay in memory
+const GEN = { [D_RACE]: () => generateRace(), [D_ART]: () => generateArt(), [D_ARENA]: () => generateArena(), [D_HIDE]: () => generateHide(), [D_JUMP]: () => generateJump() };
+function switchDim(to) {
+  const from = dim;
+  if (to > D_CASTLE && !worlds[to]) { allocDim(to); useDim(to); GEN[to](); }
+  dim = to; useDim(to);
+  if (from !== to) freeDim(from);
 }
 let portalLock = false, traveling = false;
 const fadeEl = document.getElementById('fade');
@@ -2060,12 +2482,12 @@ function travel(to) {
   sfx.portal();
   setTimeout(() => {
     leaveGame(from);
-    dim = to; useDim(to);
+    switchDim(to);
     const a = arrivalFor(to, from);
     pl.p.set(a.x + .5, surfaceY(a.x, a.z) + 0.01, a.z + .5); pl.vel.set(0, 0, 0);
     pl.facing = a.face; yaw = a.yaw; pitch = view === 'fp' ? 0 : (a.pitch ?? 0.38); camDist = dist;
     portalLock = true;
-    hearts.forEach(h => { const on = to === D_MAIN && !collected.has(h.id); h.mesh.visible = on; h.beam.visible = on; });
+    hearts.forEach(h => { const on = to === D_MAIN && !collected.has(h.id); h.mesh.visible = on; });
     curBiome = -1;
     buildGirl();
     applyMode();
@@ -2364,9 +2786,9 @@ function updateArtHud() {
   const s = artScore();
   setGameHud([`Картина ${art.level % PICTURES.length + 1} з ${PICTURES.length}: ${PICTURES[art.level % PICTURES.length].name}`,
     `Готово ${s.good} з ${s.need}`, s.wrong ? `Зайвих ${s.wrong}` : 'Без помилок'],
-    [['Очистити', () => { paintArt(); toast('Полотно чисте', 1000); }], ['Інша картинка', () => nextArt()]]);
+    [['Очистити', () => { paintArt(); toast('Полотно чисте', 1000); netSend({ t: 'artLvl', l: art.level }); }], ['Інша картинка', () => nextArt()]]);
 }
-function nextArt() { art.level = (art.level + 1) % PICTURES.length; scheduleSave(); paintArt(); toast(PICTURES[art.level].name, 1200); }
+function nextArt(auto) { art.level = (art.level + 1) % PICTURES.length; scheduleSave(); paintArt(); toast(PICTURES[art.level].name, 1200); if (!auto) netSend({ t: 'artLvl', l: art.level }); }
 function artTap(hit, place) {
   if (place) {
     const x = hit.x + hit.nx, y = hit.y + hit.ny, z = hit.z + hit.nz;
@@ -2375,6 +2797,7 @@ function artTap(hit, place) {
     if (overlapsPlayer(x, y, z)) return;
     setBlock(x, y, z, hotbar[selected]);
     sfx.place();
+    netSend({ t: 'art', l: art.level, x: x - ART.x0C, y: y - ART.y0, b: hotbar[selected] });
   } else {
     if (!inCanvas(hit.x, hit.y, hit.z)) { toast('Прибирати можна тільки блоки на своїй картині'); return; }
     const b = world[I(hit.x, hit.y, hit.z)];
@@ -2382,8 +2805,12 @@ function artTap(hit, place) {
     setBlock(hit.x, hit.y, hit.z, 0);
     burst(hit.x, hit.y, hit.z, BLOCKS[b].c, 6);
     sfx.brk();
+    netSend({ t: 'art', l: art.level, x: hit.x - ART.x0C, y: hit.y - ART.y0, b: 0 });
   }
   updateArtHud();
+  artCheckDone();
+}
+function artCheckDone() {
   const s = artScore();
   if (!art.done && s.good === s.need && s.wrong === 0) {
     art.done = true;
@@ -2393,7 +2820,7 @@ function artTap(hit, place) {
     setTimeout(() => {
       if (dim !== D_ART) return;
       if (art.level === PICTURES.length - 1) toast('Ти справжня художниця! Усі картини готові', 3500);
-      nextArt();
+      nextArt(true);
     }, 2200);
   }
 }
@@ -2406,6 +2833,9 @@ function enterArt() {
   art.labels = [a, b];
   setMode(true);
   paintArt();
+  // friends already painting here share their picture with the newcomer
+  art.wantState = true; setTimeout(() => { art.wantState = false; }, 4000);
+  netSend({ t: 'artHi' });
 }
 function leaveArt() { art.labels.forEach(s => scene.remove(s)); art.labels = []; }
 
@@ -2715,6 +3145,227 @@ function updateArenaHud() {
   setGameHud([{ text: '♥'.repeat(Math.max(0, arena.hp)) + '♡'.repeat(5 - Math.max(0, arena.hp)), cls: 'hp' }, `Хвиля ${Math.max(1, arena.wave)} / ${WAVES.length}`, `Очки ${arena.score}`]);
 }
 
+// ---------- hide and seek in a hedge maze ----------
+const MAZE = { n: 13, cell: 4, x0: 0, z0: 0, size: 0, spots: [], seed: 1 };
+const HIDERS = ['cat', 'bunny', 'piglet', 'puppy', 'fox', 'penguin', 'duckling', 'hedgehog'];
+const hide = { animals: [], found: 0, t: 0, state: 'off', hints: 3, hintT: 0, best: 0 };
+function generateHide() {
+  flatGround(GRASS, HIDEB);
+  const n = MAZE.n, c = MAZE.cell, size = n * c + 1;
+  const x0 = CX - Math.floor(size / 2), z0 = CZ - Math.floor(size / 2);
+  Object.assign(MAZE, { x0, z0, size });
+  let s = MAZE.seed = (Date.now() & 0xffff) | 1;
+  const rnd = () => (s = (Math.imul(s, 1103515245) + 12345) >>> 0) / 4294967296;
+  fillBox(x0, KH + 1, z0, x0 + size - 1, KH + 3, z0 + size - 1, LEAVES);
+  const open = (cx, cz) => fillBox(x0 + cx * c + 1, KH + 1, z0 + cz * c + 1, x0 + cx * c + c - 1, KH + 3, z0 + cz * c + c - 1, 0);
+  const seen = new Uint8Array(n * n), links = Array.from({ length: n * n }, () => 0);
+  const start = [Math.floor(n / 2), n - 1];
+  const stack = [start];
+  seen[start[1] * n + start[0]] = 1; open(start[0], start[1]);
+  while (stack.length) {
+    const [cx, cz] = stack[stack.length - 1];
+    const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => [cx + dx, cz + dz, dx, dz]).filter(([x, z]) => x >= 0 && z >= 0 && x < n && z < n && !seen[z * n + x]);
+    if (!nb.length) { stack.pop(); continue; }
+    const [nx, nz, dx, dz] = nb[Math.floor(rnd() * nb.length)];
+    seen[nz * n + nx] = 1; open(nx, nz);
+    links[cz * n + cx]++; links[nz * n + nx]++;
+    // knock out the hedge between the two cells
+    if (dx) { const wx = x0 + Math.max(cx, nx) * c; fillBox(wx, KH + 1, z0 + cz * c + 1, wx, KH + 3, z0 + cz * c + c - 1, 0); }
+    else { const wz = z0 + Math.max(cz, nz) * c; fillBox(x0 + cx * c + 1, KH + 1, wz, x0 + cx * c + c - 1, KH + 3, wz, 0); }
+    stack.push([nx, nz]);
+  }
+  // the entrance on the south side
+  fillBox(x0 + start[0] * c + 1, KH + 1, z0 + size - 1, x0 + start[0] * c + c - 1, KH + 3, z0 + size - 1, 0);
+  // dead ends make the best hiding places
+  const ends = [];
+  for (let cz = 0; cz < n; cz++) for (let cx = 0; cx < n; cx++) if (links[cz * n + cx] === 1 && !(cx === start[0] && cz === start[1])) ends.push([cx, cz, Math.hypot(cx - start[0], cz - start[1]) + rnd() * 3]);
+  ends.sort((a, b) => b[2] - a[2]);
+  MAZE.spots = ends.slice(0, HIDERS.length).map(([cx, cz]) => [x0 + cx * c + c / 2, z0 + cz * c + c / 2]);
+  for (let z = z0; z < z0 + size; z++) for (let x = x0; x < x0 + size; x++) {
+    if (!world[I(x, KH + 1, z)] && hash(x, z, 33 + MAZE.seed) < 0.06) world[I(x, KH + 1, z)] = FLOWERS[Math.floor(hash(x, z, 34) * FLOWERS.length)];
+    if (world[I(x, KH + 3, z)] === LEAVES && hash(x, z, 35) < 0.05) world[I(x, KH + 3, z)] = PINKLEAVES;
+  }
+  for (let z = 4; z < SZ - 4; z++) for (let x = 4; x < SX - 4; x++) {
+    const r = Math.max(Math.abs(x - CX), Math.abs(z - CZ)), h = hash(x, z, 92);
+    if (r > size / 2 + 6 && r < 110 && h < 0.015) treeOak(x, KH, z, 4 + Math.floor(hash(x, z, 8) * 2), LOG, h < 0.007 ? PINKLEAVES : LEAVES);
+    else if (r > size / 2 + 3 && h < 0.08) setB(x, KH + 1, z, FLOWERS[Math.floor(hash(x, z, 5) * FLOWERS.length)]);
+  }
+}
+function hideStart() { return { x: MAZE.x0 + Math.floor(MAZE.n / 2) * MAZE.cell + 2, z: MAZE.z0 + MAZE.size + 3, face: Math.PI, yaw: 0, pitch: 0.3 }; }
+function enterHide() {
+  clearHide();
+  hide.found = 0; hide.t = 0; hide.hints = 3; hide.hintT = 0; hide.state = 'run';
+  MAZE.spots.forEach(([x, z], i) => {
+    const type = HIDERS[i % HIDERS.length];
+    const m = { id: i, type, breed: DUCK_BREEDS[1], variant: '' };
+    const parts = MOB_TYPES[type].build(m);
+    parts.g.position.set(x, KH + 1, z);
+    parts.g.rotation.y = hash(i, 3, MAZE.seed) * 6.28;
+    scene.add(parts.g);
+    hide.animals.push({ type, g: parts.g, x, z, found: false, phase: i * 1.3, gone: 0 });
+  });
+  updateHideHud();
+  bigText('Знайди всіх!', 1400);
+  toast(`У лабіринті сховалися ${hide.animals.length} тваринок`, 2500);
+}
+function clearHide() { hide.animals.forEach(a => scene.remove(a.g)); hide.animals = []; }
+function leaveHide() { clearHide(); hide.state = 'off'; }
+function updateHideHud() {
+  if (dim !== D_HIDE) return;
+  setGameHud([`Знайдено ${hide.found} / ${hide.animals.length}`, `Час ${fmtTime(hide.t)}`],
+    hide.state === 'run' && hide.hints > 0 ? [[`Підказка (${hide.hints})`, () => { if (hide.hints > 0) { hide.hints--; hide.hintT = 5; updateHideHud(); } }]] : []);
+}
+let hideHudT = 0;
+function updateHide(dt, t) {
+  if (hide.state === 'off') return;
+  if (hide.state === 'run') hide.t += dt;
+  hide.hintT = Math.max(0, hide.hintT - dt);
+  let near = null, nd = Infinity;
+  hide.animals.forEach(a => {
+    if (a.found) {
+      if (a.gone > 0) { a.gone -= dt; a.g.position.y = KH + 1 + Math.max(0, Math.sin((1.2 - a.gone) * 8)) * 0.6; if (a.gone <= 0) a.g.visible = false; }
+      return;
+    }
+    // peeking: a little bob and a turn now and then
+    a.g.position.y = KH + 1 + Math.max(0, Math.sin(t * 2 + a.phase)) * 0.12;
+    a.g.rotation.y += Math.sin(t * 0.7 + a.phase) * dt * 0.8;
+    const d = Math.hypot(a.x - pl.p.x, a.z - pl.p.z);
+    if (d < nd) { nd = d; near = a; }
+    if (d < 1.9 && Math.abs(pl.p.y - KH - 1) < 1.5) {
+      a.found = true; a.gone = 1.2; hide.found++;
+      floatHeart(a.x, KH + 2, a.z); burst(a.x - .5, KH + 1, a.z - .5, '#ff6fae', 10);
+      sfx.friend();
+      toast(`Знайшла: ${MOB_TYPES[a.type].name.toLowerCase()}! ${MOB_TYPES[a.type].say}`, 1800);
+      updateHideHud();
+      if (hide.found === hide.animals.length) finishHide();
+    }
+  });
+  // the hint uses the arrow from the big world
+  if (hide.hintT > 0 && near) {
+    const ang = Math.atan2(near.x - pl.p.x, near.z - pl.p.z), camFwd = Math.atan2(-Math.sin(yaw), -Math.cos(yaw));
+    compassEl.hidden = false;
+    compassArrow.style.transform = `rotate(${wrapAngle(camFwd - ang)}rad)`;
+    compassText.textContent = `Тваринка: ${steps(Math.round(nd))}`;
+  } else if (dim === D_HIDE) compassEl.hidden = true;
+  hideHudT -= dt;
+  if (hideHudT <= 0) { hideHudT = 0.25; hudKey = ''; updateHideHud(); }
+}
+function finishHide() {
+  hide.state = 'done';
+  if (!hide.best || hide.t < hide.best) hide.best = hide.t;
+  scheduleSave();
+  sfx.win(); bigText('Усіх знайдено!', 1500);
+  const stars = hide.t < 150 ? '★★★' : hide.t < 260 ? '★★☆' : '★☆☆';
+  setTimeout(() => showResult(`Усіх знайдено! ${stars}`, `Ангеліна знайшла всіх тваринок за ${fmtTime(hide.t)}. Найкращий час: ${fmtTime(hide.best)}. Наступного разу лабіринт буде інший.`,
+    () => restartGameWorld(D_HIDE)), 1600);
+}
+
+// ---------- jumping across clouds ----------
+const JUMP = { plats: [], N: 40, island: { x: CX, z: CZ + 22 } };
+const jump = { state: 'off', t: 0, best: 0, reached: 0, checkpoint: -1, started: false };
+function generateJump() {
+  world.fill(0);
+  biomeMap.fill(JUMPB);
+  // sea everywhere, a sandy island to start from
+  for (let z = 0; z < SZ; z++) for (let x = 0; x < SX; x++) {
+    for (let y = 0; y <= KH - 6; y++) world[I(x, y, z)] = SAND;
+    for (let y = KH - 5; y <= KH - 2; y++) world[I(x, y, z)] = WATER;
+  }
+  const { x: ix, z: iz } = JUMP.island;
+  for (let dz = -7; dz <= 7; dz++) for (let dx = -7; dx <= 7; dx++) {
+    const r = Math.hypot(dx, dz);
+    if (r > 7) continue;
+    const top = r < 5.5 ? KH : KH - 1;
+    fillBox(ix + dx, KH - 5, iz + dz, ix + dx, top, iz + dz, SAND);
+    if (r < 5.5) setB(ix + dx, KH, iz + dz, GRASS);
+    if (r < 5 && hash(dx, dz, 61) < 0.12) setB(ix + dx, KH + 1, iz + dz, FLOWERS[Math.floor(hash(dx, dz, 62) * FLOWERS.length)]);
+  }
+  treeOak(ix - 4, KH, iz + 2, 4, CANDY, PINKLEAVES);
+  // a spiral of cloud platforms up into the sky; every eighth one is a golden checkpoint
+  JUMP.plats = [];
+  let a = Math.atan2(iz - CZ, ix - CX), y = KH + 1;
+  const R = 15;
+  for (let i = 0; i < JUMP.N; i++) {
+    const rise = i % 3 !== 2;
+    a -= (rise ? 4.5 : 5) / R;
+    if (rise && i > 0) y++;
+    const px = Math.round(CX + Math.cos(a) * R), pz = Math.round(CZ + Math.sin(a) * R);
+    const last = i === JUMP.N - 1, gold = (i + 1) % 8 === 0;
+    const half = last ? 2 : 1;
+    const mat = last || gold ? GOLD : (i % 5 === 4 ? WOOLS[i % 7] : CLOUD);
+    fillBox(px - half, y - 1, pz - half, px + half, y - 1, pz + half, mat);
+    JUMP.plats.push({ x: px + .5, z: pz + .5, y, gold: gold || last });
+  }
+  // a rainbow over the last platform
+  const L = JUMP.plats[JUMP.N - 1], cols = [W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE];
+  cols.forEach((c, k) => {
+    const r = 6 - k * 0.6;
+    for (let t = 0; t <= 40; t++) {
+      const ang = t / 40 * Math.PI;
+      setB(Math.round(L.x - .5 + Math.cos(ang) * r), Math.min(SY - 1, Math.round(L.y + Math.sin(ang) * Math.min(r, SY - 1 - L.y))), Math.round(L.z - .5), c);
+    }
+  });
+  // a golden cup in the corner of the last cloud
+  const cx = Math.floor(L.x) + 2, cz = Math.floor(L.z) - 2;
+  setB(cx, L.y, cz, GOLD); setB(cx, L.y + 1, cz, LANTERN);
+}
+function jumpStart() { return { x: JUMP.island.x, z: JUMP.island.z + 3, face: Math.PI, yaw: 0, pitch: 0.35 }; }
+function enterJump() {
+  jump.state = 'run'; jump.t = 0; jump.reached = 0; jump.checkpoint = -1; jump.started = false;
+  bigText('Стрибай!', 1200);
+  toast('Перескакуй з хмаринки на хмаринку до веселки. Золоті хмаринки запам\'ятовують, де ти', 3500);
+  updateJumpHud();
+}
+function leaveJump() { jump.state = 'off'; }
+function updateJumpHud() {
+  if (dim !== D_JUMP) return;
+  setGameHud([`Хмаринка ${jump.reached} / ${JUMP.N}`, `Час ${fmtTime(jump.t)}`]);
+}
+let jumpHudT = 0;
+function updateJump(dt) {
+  if (jump.state === 'off') return;
+  if (jump.state === 'run' && jump.started) jump.t += dt;
+  // standing on a platform?
+  if (pl.onGround) {
+    JUMP.plats.forEach((p, i) => {
+      if (Math.abs(pl.p.x - p.x) < 2.6 && Math.abs(pl.p.z - p.z) < 2.6 && Math.abs(pl.p.y - p.y) < 0.2) {
+        jump.started = true;
+        if (i + 1 > jump.reached) { jump.reached = i + 1; sfx.click(); }
+        if (p.gold && i > jump.checkpoint) { jump.checkpoint = i; sfx.heart(); toast('Золота хмаринка! Тепер ти почнеш звідси', 1800); burst(p.x - .5, p.y, p.z - .5, '#ffd23f', 12); }
+        if (i === JUMP.N - 1 && jump.state === 'run') finishJump();
+      }
+    });
+  }
+  if (pl.p.y < KH - 1.5) {
+    sfx.brk(); toast('Плюх! Ще раз', 1200);
+    const p = jump.checkpoint >= 0 ? JUMP.plats[jump.checkpoint] : null;
+    if (p) pl.p.set(p.x, p.y + 0.01, p.z); else { const s = jumpStart(); pl.p.set(s.x + .5, KH + 1.01, s.z + .5); }
+    pl.vel.set(0, 0, 0);
+  }
+  jumpHudT -= dt;
+  if (jumpHudT <= 0) { jumpHudT = 0.25; updateJumpHud(); }
+}
+function finishJump() {
+  jump.state = 'done';
+  if (!jump.best || jump.t < jump.best) jump.best = jump.t;
+  scheduleSave();
+  sfx.win(); bigText('Веселка!', 1500);
+  burst(pl.p.x - .5, pl.p.y + 1, pl.p.z - .5, '#fff', 30, ['#ff4f9a', '#ffd23f', '#7cc8ff', '#7be0a0', '#b388ff']);
+  const stars = jump.t < 120 ? '★★★' : jump.t < 220 ? '★★☆' : '★☆☆';
+  setTimeout(() => showResult(`До веселки! ${stars}`, `Ангеліна дострибала до веселки за ${fmtTime(jump.t)}. Найкращий час: ${fmtTime(jump.best)}.`, () => restartGameWorld(D_JUMP)), 1600);
+}
+// a new round of a game whose world needs rebuilding (a new maze, a fresh climb)
+function restartGameWorld(d) {
+  if (dim !== d) return;
+  leaveGame(d);
+  GEN[d]();
+  const a = arrivalFor(d, D_CASTLE);
+  pl.p.set(a.x + .5, surfaceY(a.x, a.z) + 0.01, a.z + .5); pl.vel.set(0, 0, 0);
+  pl.facing = a.face; yaw = a.yaw;
+  resetChunks(); refreshChunks(pl.p.x, pl.p.z, true); buildCount(9);
+  enterGame(d);
+}
+
 // ---------- HUD ----------
 const $ = id => document.getElementById(id);
 const toastEl = $('toast'), nameEl = $('blockName'), heartsEl = $('hearts'), friendsEl = $('friends'), biomeEl = $('biome'),
@@ -2768,11 +3419,21 @@ function setHotbar(list) {
   tog.className = 'inv-toggle';
   tog.addEventListener('click', () => setInventory(!invOpen));
   el.appendChild(tog);
+  // in the big worlds the bar switches between blocks and furniture
+  if (modeOf(dim) === 'explore') {
+    const tab = document.createElement('button');
+    tab.className = 'inv-toggle tab';
+    tab.textContent = list === HOTBAR_FURN ? 'Блоки' : 'Меблі';
+    tab.addEventListener('click', () => { selected = 0; setHotbar(list === HOTBAR_FURN ? HOTBAR_EXPLORE : HOTBAR_FURN); setMode(true); select(0); });
+    el.appendChild(tab);
+  }
   slots = list.map((b, i) => {
     const btn = document.createElement('button');
-    btn.className = 'slot'; btn.title = BLOCKS[b].name; btn.setAttribute('aria-label', BLOCKS[b].name);
-    const c = document.createElement('canvas'); c.width = c.height = 16;
-    c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16);
+    const nm = itemName(b);
+    btn.className = 'slot'; btn.title = nm; btn.setAttribute('aria-label', nm);
+    let c;
+    if (typeof b === 'string') c = furnIcon(b.slice(2));
+    else { c = document.createElement('canvas'); c.width = c.height = 16; c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16); }
     const num = document.createElement('span'); num.className = 'num'; num.textContent = i < 10 ? (i + 1) % 10 : '';
     btn.append(c, num);
     btn.addEventListener('click', () => { if (!invOpen) { setInventory(true); return; } select(i); setMode(true); canvas.focus({ preventScroll: true }); });
@@ -2796,9 +3457,10 @@ function select(i, quiet) {
   slots.forEach((s, j) => s.classList.toggle('sel', j === i));
   if (slots[i]) slots[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
   if (quiet) return;
-  nameEl.textContent = BLOCKS[hotbar[selected]].name; nameEl.classList.add('show');
+  nameEl.textContent = itemName(hotbar[selected]); nameEl.classList.add('show');
   clearTimeout(nameT); nameT = setTimeout(() => nameEl.classList.remove('show'), 1200);
 }
+const itemName = b => typeof b === 'string' ? FURNITURE[b.slice(2)].name : BLOCKS[b].name;
 function setMode(b) {
   building = b;
   modeBtn.textContent = b ? 'Будую' : 'Ламаю';
@@ -2822,11 +3484,15 @@ function enterGame(d) {
   if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); netSend({ t: 'raceStart' }); }
   if (d === D_ART) enterArt();
   if (d === D_ARENA) enterArena();
+  if (d === D_HIDE) enterHide();
+  if (d === D_JUMP) enterJump();
 }
 function leaveGame(d) {
   if (d === D_RACE) leaveRace();
   if (d === D_ART) leaveArt();
   if (d === D_ARENA) leaveArena();
+  if (d === D_HIDE) leaveHide();
+  if (d === D_JUMP) leaveJump();
 }
 
 modeBtn.addEventListener('click', () => { setMode(!building); toast(building ? 'Будуємо!' : 'Ламаємо!', 900); });
@@ -2834,6 +3500,7 @@ $('viewBtn').addEventListener('click', () => { setView(view === 'fp' ? 'tp' : 'f
 const menuEl = $('menu'), menuBtn = $('menuBtn');
 function menuLabels() {
   $('viewBtn').textContent = view === 'fp' ? 'Камера: очима Ангеліни' : 'Камера: ззаду';
+  $('nightBtn').textContent = sky.night ? 'Ніч: увімкнена' : 'Ніч: вимкнена';
   $('soundBtn').textContent = soundOn ? 'Звук: увімкнено' : 'Звук: вимкнено';
 }
 function setMenu(open) {
@@ -2841,6 +3508,7 @@ function setMenu(open) {
   menuBtn.setAttribute('aria-expanded', String(open));
   if (open) menuLabels();
 }
+$('nightBtn').addEventListener('click', () => { sky.night = !sky.night; toast(sky.night ? 'День і ніч змінюються' : 'Тепер завжди день', 1200); scheduleSave(); });
 menuBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(menuEl.hidden); });
 menuEl.addEventListener('click', e => { if (e.target.closest('.mitem')) setMenu(false); });
 addEventListener('pointerdown', e => { if (!menuEl.hidden && !e.target.closest('.tools')) setMenu(false); });
@@ -3025,7 +3693,8 @@ function save() {
   if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen, n: net.name }));
+      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, view, sound: soundOn, inv: invOpen, n: net.name,
+      night: sky.night, tod: sky.t, fu: playerFurniture() }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -3042,12 +3711,16 @@ function load() {
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
     if (s.n) net.name = cleanName(s.n);
+    hide.best = s.hide || 0; jump.best = s.jump || 0;
+    if (s.night === false) sky.night = false;
+    if (typeof s.tod === 'number') sky.t = s.tod % 1;
+    loadFurniture(s.fu);
     if (s.sound === false) soundOn = false;
   } catch (e) {}
 }
 
 // ---------- main loop ----------
-let biomeT = 0, curBiome = -1;
+let biomeT = 0, curBiome = -1, curVillage = null;
 function nearestHeart() {
   let best = null, bd = Infinity;
   hearts.forEach(h => {
@@ -3120,6 +3793,8 @@ function update(dt, now) {
   updatePortals(dt, t);
   updateNet(dt);
   if (mode === 'arena') updateArena(dt);
+  if (mode === 'hide') updateHide(dt, t);
+  if (mode === 'jump') updateJump(dt);
   updateParticles(dt);
   clouds.forEach(c => {
     c.position.x += dt * 0.6;
@@ -3134,17 +3809,26 @@ function update(dt, now) {
     const bx = clamp(Math.floor(camera.position.x), 0, SX - 1), bz = clamp(Math.floor(camera.position.z), 0, SZ - 1);
     const b = biomeMap[bx + bz * SX];
     if (b !== curBiome) {
-      if (curBiome !== -1 && playing && mode === 'explore') toast(BIOME_NAMES[b], 1300);
+      if (curBiome !== -1 && playing && mode === 'explore' && !curVillage) toast(BIOME_NAMES[b], 1300);
       curBiome = b; skyTarget.setHex(BIOME_SKY[b]);
     }
-    biomeEl.textContent = BIOME_NAMES[b];
+    // villages announce themselves when you walk in
+    const v = dim === D_MAIN ? villageAt(pl.p.x, pl.p.z) : null;
+    if (v !== curVillage) { curVillage = v; if (v && playing) toast(`Село ${v.name}`, 1800); }
+    biomeEl.textContent = v ? `Село ${v.name}` : BIOME_NAMES[b];
     updateCompass();
   }
   skyColor.lerp(skyTarget, Math.min(1, dt * 1.5));
-  if (underwater && mode !== 'race') { scene.background.copy(waterFog); scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
-  else { scene.background.copy(skyColor); scene.fog.color.copy(skyColor); scene.fog.near = 40; scene.fog.far = 100; }
+  const horizon = updateSky(dt, skyColor);
+  windTime.value = t;
+  waterTex.offset.set(t * 0.05, t * 0.03);
+  if (underwater && mode !== 'race') { skyDome.visible = false; scene.background = waterFog; scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
+  else { skyDome.visible = true; scene.background = null; scene.fog.color.copy(horizon); scene.fog.near = VIEW * CS * 0.42; scene.fog.far = VIEW * CS * 0.98; }
+  updateFauna(dt, t);
+  updateFurniture();
+  updateLabels();
   let hit = null;
-  if (playing && mode !== 'race' && mode !== 'arena' && !drag) {
+  if (playing && (mode === 'explore' || mode === 'art') && !drag) {
     if (locked()) { aim(innerWidth / 2, innerHeight / 2); hit = pickBlock(); }
     else if (mouse) { aim(mouse.x, mouse.y); hit = pickBlock(); }
   }
@@ -3163,15 +3847,15 @@ addEventListener('resize', resize);
 
 // ---------- boot ----------
 function boot() {
+  for (let d = D_CASTLE + 1; d < NDIMS; d++) freeDim(d);
   dim = D_MAIN;
   useDim(D_MAIN); generateMain(); placeHearts();
   useDim(D_CASTLE); generateCastle();
-  useDim(D_RACE); generateRace();
-  useDim(D_ART); generateArt();
-  useDim(D_ARENA); generateArena();
   useDim(D_MAIN);
   load();
-  hearts.forEach(h => { const on = !collected.has(h.id); h.mesh.visible = on; h.beam.visible = on; if (!on) { scene.remove(h.mesh); scene.remove(h.beam); } });
+  hearts.forEach(h => { const on = !collected.has(h.id); h.mesh.visible = on; if (!on) scene.remove(h.mesh); });
+  settleFurniture();
+  addPlaceLabels();
   PORTALS[0].open = collected.size >= HEART_NEED;
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
   portalLock = false;
@@ -3232,7 +3916,7 @@ function relay(msg, fromId) { net.conns.forEach((c, id) => { if (id !== fromId &
 function hostRoom() {
   if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
   net.name = cleanName($('netName').value); setNameTag(net.name);
-  const code = String(1000 + Math.floor(Math.random() * 9000));
+  const code = String(100000 + Math.floor(Math.random() * 900000));
   netStatus('Створюю кімнату…');
   let peer;
   try { peer = new Peer(PEER_PREFIX + code, peerOpts()); } catch (e) { netStatus('Не вдалося створити кімнату. Спробуй ще раз.'); return; }
@@ -3261,8 +3945,8 @@ function hostRoom() {
   peer.on('disconnected', () => { if (net.role === 'host') { try { peer.reconnect(); } catch (e) {} } });
 }
 function joinRoom() {
-  const code = $('netCode').value.replace(/\D/g, '').slice(0, 4);
-  if (code.length !== 4) { netStatus('Код кімнати складається з 4 цифр'); return; }
+  const code = $('netCode').value.replace(/\D/g, '').slice(0, 6);
+  if (code.length !== 6) { netStatus('Код кімнати складається з 6 цифр'); return; }
   if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
   net.name = cleanName($('netName').value); setNameTag(net.name);
   netStatus('Під\'єднуюсь…');
@@ -3291,9 +3975,9 @@ function closePeer() {
   try { if (net.peer) net.peer.destroy(); } catch (e) {}
   net.peer = null; net.conn = null; net.conns.clear();
 }
-function leaveRoom() {
+function leaveRoom(quiet) {
   const wasGuest = net.role === 'guest';
-  if (net.role !== 'off') netSend({ t: 'leave' });
+  if (net.role !== 'off' && !quiet) netSend({ t: 'leave' });
   closePeer();
   net.players.forEach(P => removeAvatar(P));
   net.players.clear();
@@ -3309,15 +3993,26 @@ function onHostData(id, m) {
   if (m.t === 'hello') {
     const P = addPlayer(id, cleanName(m.name), cleanOutfit(m.o));
     const others = [{ id: 'h', name: net.name, o: outfit, ...myState() }].concat([...net.players.values()].filter(q => q.id !== id).map(q => ({ id: q.id, name: q.name, o: q.outfit, d: q.d, x: q.x, y: q.y, z: q.z, f: q.f })));
-    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others });
+    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others, fu: playerFurniture(), tod: sky.t, night: sky.night });
+    net.petsKey = '';
     relay({ t: 'join', id, name: P.name, o: P.outfit }, id);
     toast(`${P.name} приєдналася до гри!`, 2500);
     renderNet();
     return;
   }
+  // only everyday game messages are passed on; nothing a guest sends can act as the host
+  if (!RELAYED.has(m.t)) return;
   m.id = id;
   applyNet(m);
   relay(m, id);
+}
+const RELAYED = new Set(['st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
+function kickPlayer(id) {
+  const P = net.players.get(id), c = net.conns.get(id);
+  if (net.role !== 'host' || !P) return;
+  try { if (c && c.open) c.send({ t: 'kicked', id: 'h' }); } catch (e) {}
+  setTimeout(() => dropPlayer(id, false), 300);
+  toast(`${P.name} більше не в кімнаті`, 2000);
 }
 function applyNet(m) {
   if (!m || typeof m !== 'object') return;
@@ -3325,6 +4020,16 @@ function applyNet(m) {
   switch (m.t) {
     case 'welcome': return adoptRoom(m);
     case 'full': netStatus('Кімната вже повна'); closePeer(); return;
+    case 'kicked': if (net.role === 'guest' && m.id === 'h') { net.role = 'guest'; leaveRoom(true); toast('Тебе попросили вийти з кімнати', 3000); } return;
+    case 'furn':
+      if ((m.d === 0 || m.d === 1) && [m.x, m.y, m.z].every(Number.isInteger) && inB(m.x, m.y, m.z)) {
+        if (m.op === 'add' && FURNITURE[m.type]) { const r = addFurnitureRec(m.d, m.x, m.y, m.z, m.type, m.rot | 0, false); if (r) furnModel(r); if (m.d === dim) rebuildAround(m.x, m.z); }
+        if (m.op === 'del') breakFurniture(m.d, I(m.x, m.y, m.z), true);
+        if (net.role === 'host') scheduleSave();
+      }
+      return;
+    case 'pets': if (P) setPlayerPets(P, m.l); return;
+    case 'art': case 'artLvl': case 'artHi': case 'artState': return applyArtNet(m);
     case 'join': if (m.id !== net.myId && !net.players.has(m.id)) { addPlayer(m.id, cleanName(m.name), cleanOutfit(m.o)); toast(`${cleanName(m.name)} приєдналася до гри!`, 2500); renderNet(); } return;
     case 'leave': if (P) { toast(`${P.name} вийшла з гри`, 2000); dropPlayer(m.id, false); } return;
     case 'st': if (P) setPlayerState(P, m); return;
@@ -3364,6 +4069,10 @@ function adoptRoom(m) {
   hearts.forEach(h => { if (collected.has(h.id)) scene.remove(h.mesh); });
   PORTALS[0].open = collected.size >= HEART_NEED;
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
+  loadFurniture(m.fu);
+  settleFurniture();
+  if (typeof m.tod === 'number' && Number.isFinite(m.tod)) sky.t = ((m.tod % 1) + 1) % 1;
+  if (typeof m.night === 'boolean') sky.night = m.night;
   spawnMobs();
   updateStats();
   (m.players || []).forEach(p => {
@@ -3405,7 +4114,7 @@ function rebuildAvatar(P) {
   P.g.add(P.tag);
   if (P.carObj) { scene.remove(P.carObj.g); P.carObj = null; }
 }
-function removeAvatar(P) { scene.remove(P.g); if (P.carObj) scene.remove(P.carObj.g); }
+function removeAvatar(P) { scene.remove(P.g); if (P.carObj) scene.remove(P.carObj.g); (P.petObjs || []).forEach(o => scene.remove(o.g)); P.petObjs = []; }
 function dropPlayer(id, announce) {
   const P = net.players.get(id);
   if (net.role === 'host') { const c = net.conns.get(id); net.conns.delete(id); try { if (c) c.close(); } catch (e) {} if (P) relay({ t: 'leave', id }, id); }
@@ -3422,6 +4131,8 @@ function setPlayerState(P, m, snap) {
   P.x = clamp(m.x, 0, SX); P.y = clamp(m.y, -20, SY + 10); P.z = clamp(m.z, 0, SZ);
   P.f = finite(m.f) ? m.f : P.f; P.mv = m.mv ? 1 : 0;
   P.car = Array.isArray(m.car) && m.car.length === 4 && m.car.every(finite) ? m.car : null;
+  // guests keep the host's clock so night falls for everyone together
+  if (P.id === 'h' && net.role === 'guest' && finite(m.tod) && Math.abs(m.tod - sky.t) > 0.01) sky.t = ((m.tod % 1) + 1) % 1;
   if (snap || !P.seen) { P.g.position.set(P.x, P.y, P.z); P.seen = true; }
 }
 function myState() {
@@ -3435,7 +4146,8 @@ function updateNet(dt) {
   if (net.sendT <= 0) {
     net.sendT = 0.1;
     const s = myState(), r2 = v => Math.round(v * 100) / 100;
-    netSend({ t: 'st', d: s.d, x: r2(s.x), y: r2(s.y), z: r2(s.z), f: r2(s.f), mv: s.mv, car: s.car ? s.car.map(r2) : 0 });
+    netSend({ t: 'st', d: s.d, x: r2(s.x), y: r2(s.y), z: r2(s.z), f: r2(s.f), mv: s.mv, car: s.car ? s.car.map(r2) : 0, tod: net.role === 'host' ? Math.round(sky.t * 10000) / 10000 : undefined });
+    sendPetsIfChanged();
   }
   const k = Math.min(1, dt * 10);
   net.players.forEach(P => {
@@ -3452,6 +4164,7 @@ function updateNet(dt) {
       c.g.rotation.y += wrapAngle(P.car[2] - c.g.rotation.y) * k;
       return;
     }
+    updatePlayerPets(P, dt, here && dim <= D_CASTLE);
     if (!here) return;
     P.g.position.x += (P.x - P.g.position.x) * k;
     P.g.position.y += (P.y - P.g.position.y) * k;
@@ -3496,7 +4209,7 @@ function say(i) {
 
 // ---------- teleport used when joining a friend ----------
 function teleportTo(d, x, y, z) {
-  dim = d; useDim(d);
+  switchDim(d);
   pl.p.set(x, y, z); pl.vel.set(0, 0, 0);
   portalLock = true;
   hearts.forEach(h => { const on = d === D_MAIN && !collected.has(h.id); h.mesh.visible = on; });
@@ -3521,12 +4234,19 @@ function renderNet() {
   $('netCodeShow').textContent = net.code;
   const list = $('netPlayers');
   list.textContent = '';
-  [{ name: net.name + ' (ти)', host: net.role === 'host' }].concat([...net.players.values()].map(P => ({ name: P.name, host: P.id === 'h' }))).forEach(p => {
+  [{ name: net.name + ' (ти)', host: net.role === 'host' }].concat([...net.players.values()].map(P => ({ id: P.id, name: P.name, host: P.id === 'h' }))).forEach(p => {
     const li = document.createElement('li');
     const who = document.createElement('div'); who.className = 'who';
     const b = document.createElement('b'); b.textContent = p.name;
     const sp = document.createElement('span'); sp.textContent = p.host ? 'створила кімнату' : 'гостя';
-    who.append(b, sp); li.appendChild(who); list.appendChild(li);
+    who.append(b, sp); li.appendChild(who);
+    // only the girl who made the room can ask someone to leave
+    if (net.role === 'host' && p.id && !p.host) {
+      const kb = document.createElement('button'); kb.className = 'free'; kb.textContent = 'Вигнати';
+      kb.addEventListener('click', () => { kickPlayer(p.id); });
+      li.appendChild(kb);
+    }
+    list.appendChild(li);
   });
 }
 function openNet() {
@@ -3552,6 +4272,76 @@ PHRASES.forEach((p, i) => {
 $('phraseBtn').addEventListener('click', e => { e.stopPropagation(); phraseMenu.hidden = !phraseMenu.hidden; setMenu(false); });
 addEventListener('pointerdown', e => { if (!phraseMenu.hidden && !e.target.closest('.tools')) phraseMenu.hidden = true; });
 addEventListener('beforeunload', () => { if (net.role !== 'off') netSend({ t: 'leave' }); });
+
+// ---------- friends' pets walk behind them ----------
+function myPets() {
+  return [...friends].map(id => mobs[id]).filter(m => m && m.type !== 'villager').slice(0, 8)
+    .map(m => ({ type: m.type, breed: m.breed ? m.breed.id : '', variant: m.variant || '' }));
+}
+function sendPetsIfChanged() {
+  const l = myPets(), key = JSON.stringify(l);
+  if (key === net.petsKey) return;
+  net.petsKey = key;
+  netSend({ t: 'pets', l });
+}
+function setPlayerPets(P, list) {
+  (P.petObjs || []).forEach(o => scene.remove(o.g));
+  P.petObjs = [];
+  (Array.isArray(list) ? list : []).slice(0, 8).forEach((p, i) => {
+    if (!p || !Object.prototype.hasOwnProperty.call(MOB_TYPES, p.type) || p.type === 'villager') return;
+    const breed = DUCK_BREEDS.find(b => b.id === p.breed) || DUCK_BREEDS[1];
+    const parts = MOB_TYPES[p.type].build({ id: i, breed, variant: p.variant === 'arctic' || p.variant === 'polar' ? p.variant : '' });
+    parts.g.position.copy(P.g.position);
+    scene.add(parts.g);
+    P.petObjs.push({ g: parts.g, legs: parts.legs || [], phase: i });
+  });
+}
+function updatePlayerPets(P, dt, show) {
+  (P.petObjs || []).forEach((o, i) => {
+    o.g.visible = show;
+    if (!show) return;
+    const side = (i % 2 ? 1 : -1) * (1 + Math.floor(i / 2) * 0.7), back = 1.6 + Math.floor(i / 2) * 0.9;
+    const f = P.g.rotation.y, tx = P.g.position.x - Math.sin(f) * back + Math.cos(f) * side, tz = P.g.position.z - Math.cos(f) * back - Math.sin(f) * side;
+    const dx = tx - o.g.position.x, dz = tz - o.g.position.z, d = Math.hypot(dx, dz);
+    const k = Math.min(1, dt * 4);
+    o.g.position.x += dx * k; o.g.position.z += dz * k;
+    o.g.position.y += (surfaceY(Math.floor(o.g.position.x), Math.floor(o.g.position.z)) - o.g.position.y) * Math.min(1, dt * 10);
+    if (d > 0.2) o.g.rotation.y += wrapAngle(Math.atan2(dx, dz) - o.g.rotation.y) * k;
+    o.phase += dt * (d > 0.3 ? 9 : 0);
+    const sw = d > 0.3 ? Math.sin(o.phase) * 0.6 : 0;
+    o.legs.forEach((l, j) => { l.rotation.x = (j === 0 || j === 3) ? sw : -sw; });
+  });
+}
+
+// ---------- one shared picture ----------
+function applyArtNet(m) {
+  if (dim !== D_ART) return;
+  const S = ART.size, W = worlds[D_ART];
+  if (m.t === 'artHi') { netSend({ t: 'artState', l: art.level, cells: artCells() }); return; }
+  if (m.t === 'artState') {
+    if (!art.wantState || !Number.isInteger(m.l) || !PICTURES[m.l] || !Array.isArray(m.cells)) return;
+    art.wantState = false;
+    art.level = m.l; paintArt();
+    m.cells.slice(0, S * S).forEach(([gx, gy, b]) => { if (Number.isInteger(gx) && Number.isInteger(gy) && gx >= 0 && gy >= 0 && gx < S && gy < S && WOOLS.includes(b)) W[I(ART.x0C + gx, ART.y0 + gy, ART.zWall + 1)] = b; });
+    rebuildAround(ART.x0C + 3, ART.zWall); rebuildAround(ART.x0C + 6, ART.zWall);
+    updateArtHud();
+    return;
+  }
+  if (m.t === 'artLvl') { if (Number.isInteger(m.l) && PICTURES[m.l]) { art.level = m.l; paintArt(); } return; }
+  if (m.t === 'art') {
+    if (m.l !== art.level || !Number.isInteger(m.x) || !Number.isInteger(m.y) || m.x < 0 || m.y < 0 || m.x >= S || m.y >= S) return;
+    if (m.b !== 0 && !WOOLS.includes(m.b)) return;
+    W[I(ART.x0C + m.x, ART.y0 + m.y, ART.zWall + 1)] = m.b;
+    rebuildAround(ART.x0C + m.x, ART.zWall);
+    updateArtHud();
+    artCheckDone();
+  }
+}
+function artCells() {
+  const S = ART.size, W = worlds[D_ART], out = [];
+  for (let gy = 0; gy < S; gy++) for (let gx = 0; gx < S; gx++) { const b = W[I(ART.x0C + gx, ART.y0 + gy, ART.zWall + 1)]; if (b) out.push([gx, gy, b]); }
+  return out;
+}
 
 // ---------- install as an app ----------
 const standalone = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone === true;
@@ -3589,6 +4379,140 @@ $('installBtn').addEventListener('click', async () => {
   showInstallHelp();
 });
 $('installClose').addEventListener('click', () => { $('installPanel').hidden = true; playing = true; });
+
+// ---------- sky, day and night ----------
+const DAY_LEN = 600;
+// 0.0 sunrise, 0.25 noon, 0.5 sunset, 0.75 midnight; the game starts in the morning
+const sky = { t: 0.12, night: true, light: 1, dark: 0 };
+const skyDome = new THREE.Mesh(new THREE.SphereGeometry(230, 32, 16), new THREE.ShaderMaterial({
+  uniforms: { top: { value: new THREE.Color(0x4aa8ff) }, horizon: { value: new THREE.Color(0x9fd8ff) }, glow: { value: new THREE.Color(0xffb38a) }, sunDir: { value: new THREE.Vector3(0, 1, 0) }, glowAmt: { value: 0 } },
+  vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform vec3 top; uniform vec3 horizon; uniform vec3 glow; uniform vec3 sunDir; uniform float glowAmt; varying vec3 vDir;
+    void main(){
+      float h = clamp(vDir.y, -0.2, 1.0);
+      vec3 c = mix(horizon, top, pow(max(h, 0.0), 0.6));
+      float s = max(dot(normalize(vec3(vDir.x, 0.0, vDir.z)), normalize(vec3(sunDir.x, 0.0, sunDir.z))), 0.0);
+      c = mix(c, glow, glowAmt * pow(s, 3.0) * (1.0 - smoothstep(0.0, 0.45, h)));
+      gl_FragColor = vec4(c, 1.0);
+    }`,
+  side: THREE.BackSide, depthWrite: false, fog: false,
+}));
+skyDome.renderOrder = -10;
+scene.add(skyDome);
+scene.background = null;
+function discSprite(inner, outer, size) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gr.addColorStop(0, inner); gr.addColorStop(0.45, inner); gr.addColorStop(0.55, outer); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, fog: false, depthWrite: false }));
+  s.scale.set(size, size, 1); s.renderOrder = -9;
+  scene.add(s);
+  return s;
+}
+const sunSprite = discSprite('#fff8d0', 'rgba(255,220,120,0.5)', 34);
+const moonSprite = discSprite('#f4f1ff', 'rgba(200,210,255,0.3)', 22);
+const stars = (() => {
+  const n = 900, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const u = hash(i, 1, 501), v = hash(i, 2, 502), th = u * Math.PI * 2, ph = Math.acos(1 - v * 0.95);
+    pos[i * 3] = Math.sin(ph) * Math.cos(th) * 200; pos[i * 3 + 1] = Math.cos(ph) * 200; pos[i * 3 + 2] = Math.sin(ph) * Math.sin(th) * 200;
+  }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const p = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+  p.renderOrder = -9;
+  scene.add(p);
+  return p;
+})();
+const hemi = scene.children.find(o => o.isHemisphereLight);
+const C_NIGHT_TOP = new THREE.Color(0x070b24), C_NIGHT_HOR = new THREE.Color(0x1d2b5e), C_DUSK = new THREE.Color(0xff9a6b), C_DAY_TOP = new THREE.Color(0x3d9cff);
+const _hor = new THREE.Color(), _top = new THREE.Color(), _day = new THREE.Color(), _dir = new THREE.Vector3();
+function updateSky(dt, dayHorizon) {
+  // games are always in daylight; the big worlds follow the clock unless night is switched off
+  const games = dim > D_CASTLE;
+  if (!games && sky.night) sky.t = (sky.t + dt / DAY_LEN) % 1;
+  const t = games || !sky.night ? 0.25 : sky.t;
+  const a = t * Math.PI * 2;
+  _dir.set(Math.cos(a), Math.sin(a), 0.35).normalize();
+  const h = _dir.y;
+  sky.light = THREE.MathUtils.smoothstep(h, -0.12, 0.28);
+  sky.dark = 1 - sky.light;
+  const dusk = Math.exp(-Math.pow(h / 0.2, 2));
+  _hor.copy(C_NIGHT_HOR).lerp(dayHorizon, sky.light).lerp(C_DUSK, dusk * 0.55);
+  _day.copy(dayHorizon).lerp(C_DAY_TOP, 0.45);
+  _top.copy(C_NIGHT_TOP).lerp(_day, sky.light);
+  const u = skyDome.material.uniforms;
+  u.top.value.copy(_top); u.horizon.value.copy(_hor); u.sunDir.value.copy(_dir); u.glowAmt.value = dusk * 0.8;
+  skyDome.position.copy(camera.position);
+  stars.position.copy(camera.position);
+  stars.material.opacity = Math.max(0, sky.dark - 0.25) * 1.2;
+  stars.rotation.y = a * 0.25;
+  sunSprite.position.copy(camera.position).addScaledVector(_dir, 190);
+  moonSprite.position.copy(camera.position).addScaledVector(_dir, -190);
+  sunSprite.material.opacity = clamp(h * 4 + 0.3, 0, 1);
+  moonSprite.material.opacity = clamp(-h * 4 + 0.3, 0, 1);
+  // the light never gets fully dark so an eight-year-old can still find her way at night
+  hemi.intensity = 0.36 + 0.46 * sky.light;
+  hemi.color.setRGB(0.75 + 0.25 * sky.light, 0.8 + 0.2 * sky.light, 1);
+  sun.intensity = 0.1 + 0.48 * sky.light;
+  if (h > 0) sun.position.copy(_dir); else sun.position.copy(_dir).negate();
+  cloudMat.color.setRGB(0.45 + 0.55 * sky.light, 0.48 + 0.52 * sky.light, 0.6 + 0.4 * sky.light);
+  return _hor;
+}
+function isNight() { return sky.dark > 0.6; }
+
+// ---------- butterflies by day, fireflies at night ----------
+const butterflies = [];
+const wingGeo = new THREE.PlaneGeometry(0.22, 0.18);
+wingGeo.translate(0.11, 0, 0);
+['#ff9fd2', '#ffd23f', '#9ad8ff', '#c9a8ff', '#ffffff', '#ff8a1f'].forEach((c, i) => {
+  for (let k = 0; k < 3; k++) {
+    const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide, fog: true });
+    const l = new THREE.Mesh(wingGeo, m), r = new THREE.Mesh(wingGeo, m);
+    r.rotation.y = Math.PI;
+    g.add(l, r);
+    g.visible = false;
+    scene.add(g);
+    butterflies.push({ g, l, r, home: new THREE.Vector3(), p: new THREE.Vector3(), ph: i * 2 + k, life: 0 });
+  }
+});
+const fireflies = (() => {
+  const n = 70, pos = new Float32Array(n * 3);
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const p = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xfff28a, size: 0.22, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }));
+  p.frustumCulled = false;
+  scene.add(p);
+  return { p, seeds: Array.from({ length: n }, (_, i) => [hash(i, 1, 801) * 40 - 20, hash(i, 2, 802) * 40 - 20, hash(i, 3, 803) * 6.28]) };
+})();
+function updateFauna(dt, t) {
+  const outside = dim === D_MAIN || dim === D_CASTLE || dim === D_HIDE;
+  const day = outside && sky.light > 0.5;
+  butterflies.forEach((b, i) => {
+    if (!day) { b.g.visible = false; b.life = 0; return; }
+    b.life -= dt;
+    if (b.life <= 0 || b.p.distanceTo(pl.p) > 34) {
+      const a = hash(i, Math.floor(t), 811) * 6.28, r = 6 + hash(i, Math.floor(t), 812) * 18;
+      const x = Math.floor(pl.p.x + Math.cos(a) * r), z = Math.floor(pl.p.z + Math.sin(a) * r);
+      b.home.set(x + .5, surfaceY(x, z) + 1.2, z + .5); b.p.copy(b.home); b.life = 8 + hash(i, 5, 813) * 8;
+    }
+    b.p.set(b.home.x + Math.sin(t * 0.7 + b.ph) * 1.6, b.home.y + Math.sin(t * 1.3 + b.ph) * 0.4 + 0.3, b.home.z + Math.cos(t * 0.6 + b.ph) * 1.6);
+    b.g.position.copy(b.p);
+    b.g.rotation.y = t * 0.7 + b.ph + Math.PI / 2;
+    const flap = Math.sin(t * 18 + b.ph) * 1.1;
+    b.l.rotation.y = flap; b.r.rotation.y = Math.PI - flap;
+    b.g.visible = true;
+  });
+  const night = outside && sky.dark > 0.55;
+  fireflies.p.material.opacity = night ? (sky.dark - 0.55) * 2 : 0;
+  if (night) {
+    const pos = fireflies.p.geometry.attributes.position;
+    fireflies.seeds.forEach(([sx, sz, ph], i) => {
+      const x = pl.p.x + sx + Math.sin(t * 0.4 + ph) * 2, z = pl.p.z + sz + Math.cos(t * 0.3 + ph) * 2;
+      pos.setXYZ(i, x, surfaceY(Math.floor(x), Math.floor(z)) + 0.8 + Math.sin(t * 0.9 + ph) * 0.6, z);
+    });
+    pos.needsUpdate = true;
+  }
+}
 
 })();
 </script>

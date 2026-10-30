@@ -51,11 +51,21 @@ function setHotbar(list) {
   tog.className = 'inv-toggle';
   tog.addEventListener('click', () => setInventory(!invOpen));
   el.appendChild(tog);
+  // in the big worlds the bar switches between blocks and furniture
+  if (modeOf(dim) === 'explore') {
+    const tab = document.createElement('button');
+    tab.className = 'inv-toggle tab';
+    tab.textContent = list === HOTBAR_FURN ? 'Блоки' : 'Меблі';
+    tab.addEventListener('click', () => { selected = 0; setHotbar(list === HOTBAR_FURN ? HOTBAR_EXPLORE : HOTBAR_FURN); setMode(true); select(0); });
+    el.appendChild(tab);
+  }
   slots = list.map((b, i) => {
     const btn = document.createElement('button');
-    btn.className = 'slot'; btn.title = BLOCKS[b].name; btn.setAttribute('aria-label', BLOCKS[b].name);
-    const c = document.createElement('canvas'); c.width = c.height = 16;
-    c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16);
+    const nm = itemName(b);
+    btn.className = 'slot'; btn.title = nm; btn.setAttribute('aria-label', nm);
+    let c;
+    if (typeof b === 'string') c = furnIcon(b.slice(2));
+    else { c = document.createElement('canvas'); c.width = c.height = 16; c.getContext('2d').drawImage(atlas, BLOCKS[b].t[1] * 16, 0, 16, 16, 0, 0, 16, 16); }
     const num = document.createElement('span'); num.className = 'num'; num.textContent = i < 10 ? (i + 1) % 10 : '';
     btn.append(c, num);
     btn.addEventListener('click', () => { if (!invOpen) { setInventory(true); return; } select(i); setMode(true); canvas.focus({ preventScroll: true }); });
@@ -79,9 +89,10 @@ function select(i, quiet) {
   slots.forEach((s, j) => s.classList.toggle('sel', j === i));
   if (slots[i]) slots[i].scrollIntoView({ block: 'nearest', inline: 'nearest' });
   if (quiet) return;
-  nameEl.textContent = BLOCKS[hotbar[selected]].name; nameEl.classList.add('show');
+  nameEl.textContent = itemName(hotbar[selected]); nameEl.classList.add('show');
   clearTimeout(nameT); nameT = setTimeout(() => nameEl.classList.remove('show'), 1200);
 }
+const itemName = b => typeof b === 'string' ? FURNITURE[b.slice(2)].name : BLOCKS[b].name;
 function setMode(b) {
   building = b;
   modeBtn.textContent = b ? 'Будую' : 'Ламаю';
@@ -105,11 +116,15 @@ function enterGame(d) {
   if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); netSend({ t: 'raceStart' }); }
   if (d === D_ART) enterArt();
   if (d === D_ARENA) enterArena();
+  if (d === D_HIDE) enterHide();
+  if (d === D_JUMP) enterJump();
 }
 function leaveGame(d) {
   if (d === D_RACE) leaveRace();
   if (d === D_ART) leaveArt();
   if (d === D_ARENA) leaveArena();
+  if (d === D_HIDE) leaveHide();
+  if (d === D_JUMP) leaveJump();
 }
 
 modeBtn.addEventListener('click', () => { setMode(!building); toast(building ? 'Будуємо!' : 'Ламаємо!', 900); });
@@ -117,6 +132,7 @@ $('viewBtn').addEventListener('click', () => { setView(view === 'fp' ? 'tp' : 'f
 const menuEl = $('menu'), menuBtn = $('menuBtn');
 function menuLabels() {
   $('viewBtn').textContent = view === 'fp' ? 'Камера: очима Ангеліни' : 'Камера: ззаду';
+  $('nightBtn').textContent = sky.night ? 'Ніч: увімкнена' : 'Ніч: вимкнена';
   $('soundBtn').textContent = soundOn ? 'Звук: увімкнено' : 'Звук: вимкнено';
 }
 function setMenu(open) {
@@ -124,6 +140,7 @@ function setMenu(open) {
   menuBtn.setAttribute('aria-expanded', String(open));
   if (open) menuLabels();
 }
+$('nightBtn').addEventListener('click', () => { sky.night = !sky.night; toast(sky.night ? 'День і ніч змінюються' : 'Тепер завжди день', 1200); scheduleSave(); });
 menuBtn.addEventListener('click', e => { e.stopPropagation(); setMenu(menuEl.hidden); });
 menuEl.addEventListener('click', e => { if (e.target.closest('.mitem')) setMenu(false); });
 addEventListener('pointerdown', e => { if (!menuEl.hidden && !e.target.closest('.tools')) setMenu(false); });
@@ -308,7 +325,8 @@ function save() {
   if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen, n: net.name }));
+      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, view, sound: soundOn, inv: invOpen, n: net.name,
+      night: sky.night, tod: sky.t, fu: playerFurniture() }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -325,6 +343,10 @@ function load() {
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
     if (s.n) net.name = cleanName(s.n);
+    hide.best = s.hide || 0; jump.best = s.jump || 0;
+    if (s.night === false) sky.night = false;
+    if (typeof s.tod === 'number') sky.t = s.tod % 1;
+    loadFurniture(s.fu);
     if (s.sound === false) soundOn = false;
   } catch (e) {}
 }

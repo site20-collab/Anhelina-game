@@ -27,7 +27,7 @@ function relay(msg, fromId) { net.conns.forEach((c, id) => { if (id !== fromId &
 function hostRoom() {
   if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
   net.name = cleanName($('netName').value); setNameTag(net.name);
-  const code = String(1000 + Math.floor(Math.random() * 9000));
+  const code = String(100000 + Math.floor(Math.random() * 900000));
   netStatus('Створюю кімнату…');
   let peer;
   try { peer = new Peer(PEER_PREFIX + code, peerOpts()); } catch (e) { netStatus('Не вдалося створити кімнату. Спробуй ще раз.'); return; }
@@ -56,8 +56,8 @@ function hostRoom() {
   peer.on('disconnected', () => { if (net.role === 'host') { try { peer.reconnect(); } catch (e) {} } });
 }
 function joinRoom() {
-  const code = $('netCode').value.replace(/\D/g, '').slice(0, 4);
-  if (code.length !== 4) { netStatus('Код кімнати складається з 4 цифр'); return; }
+  const code = $('netCode').value.replace(/\D/g, '').slice(0, 6);
+  if (code.length !== 6) { netStatus('Код кімнати складається з 6 цифр'); return; }
   if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
   net.name = cleanName($('netName').value); setNameTag(net.name);
   netStatus('Під\'єднуюсь…');
@@ -86,9 +86,9 @@ function closePeer() {
   try { if (net.peer) net.peer.destroy(); } catch (e) {}
   net.peer = null; net.conn = null; net.conns.clear();
 }
-function leaveRoom() {
+function leaveRoom(quiet) {
   const wasGuest = net.role === 'guest';
-  if (net.role !== 'off') netSend({ t: 'leave' });
+  if (net.role !== 'off' && !quiet) netSend({ t: 'leave' });
   closePeer();
   net.players.forEach(P => removeAvatar(P));
   net.players.clear();
@@ -104,15 +104,26 @@ function onHostData(id, m) {
   if (m.t === 'hello') {
     const P = addPlayer(id, cleanName(m.name), cleanOutfit(m.o));
     const others = [{ id: 'h', name: net.name, o: outfit, ...myState() }].concat([...net.players.values()].filter(q => q.id !== id).map(q => ({ id: q.id, name: q.name, o: q.outfit, d: q.d, x: q.x, y: q.y, z: q.z, f: q.f })));
-    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others });
+    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others, fu: playerFurniture(), tod: sky.t, night: sky.night });
+    net.petsKey = '';
     relay({ t: 'join', id, name: P.name, o: P.outfit }, id);
     toast(`${P.name} приєдналася до гри!`, 2500);
     renderNet();
     return;
   }
+  // only everyday game messages are passed on; nothing a guest sends can act as the host
+  if (!RELAYED.has(m.t)) return;
   m.id = id;
   applyNet(m);
   relay(m, id);
+}
+const RELAYED = new Set(['st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
+function kickPlayer(id) {
+  const P = net.players.get(id), c = net.conns.get(id);
+  if (net.role !== 'host' || !P) return;
+  try { if (c && c.open) c.send({ t: 'kicked', id: 'h' }); } catch (e) {}
+  setTimeout(() => dropPlayer(id, false), 300);
+  toast(`${P.name} більше не в кімнаті`, 2000);
 }
 function applyNet(m) {
   if (!m || typeof m !== 'object') return;
@@ -120,6 +131,16 @@ function applyNet(m) {
   switch (m.t) {
     case 'welcome': return adoptRoom(m);
     case 'full': netStatus('Кімната вже повна'); closePeer(); return;
+    case 'kicked': if (net.role === 'guest' && m.id === 'h') { net.role = 'guest'; leaveRoom(true); toast('Тебе попросили вийти з кімнати', 3000); } return;
+    case 'furn':
+      if ((m.d === 0 || m.d === 1) && [m.x, m.y, m.z].every(Number.isInteger) && inB(m.x, m.y, m.z)) {
+        if (m.op === 'add' && FURNITURE[m.type]) { const r = addFurnitureRec(m.d, m.x, m.y, m.z, m.type, m.rot | 0, false); if (r) furnModel(r); if (m.d === dim) rebuildAround(m.x, m.z); }
+        if (m.op === 'del') breakFurniture(m.d, I(m.x, m.y, m.z), true);
+        if (net.role === 'host') scheduleSave();
+      }
+      return;
+    case 'pets': if (P) setPlayerPets(P, m.l); return;
+    case 'art': case 'artLvl': case 'artHi': case 'artState': return applyArtNet(m);
     case 'join': if (m.id !== net.myId && !net.players.has(m.id)) { addPlayer(m.id, cleanName(m.name), cleanOutfit(m.o)); toast(`${cleanName(m.name)} приєдналася до гри!`, 2500); renderNet(); } return;
     case 'leave': if (P) { toast(`${P.name} вийшла з гри`, 2000); dropPlayer(m.id, false); } return;
     case 'st': if (P) setPlayerState(P, m); return;
@@ -159,6 +180,10 @@ function adoptRoom(m) {
   hearts.forEach(h => { if (collected.has(h.id)) scene.remove(h.mesh); });
   PORTALS[0].open = collected.size >= HEART_NEED;
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
+  loadFurniture(m.fu);
+  settleFurniture();
+  if (typeof m.tod === 'number' && Number.isFinite(m.tod)) sky.t = ((m.tod % 1) + 1) % 1;
+  if (typeof m.night === 'boolean') sky.night = m.night;
   spawnMobs();
   updateStats();
   (m.players || []).forEach(p => {
@@ -200,7 +225,7 @@ function rebuildAvatar(P) {
   P.g.add(P.tag);
   if (P.carObj) { scene.remove(P.carObj.g); P.carObj = null; }
 }
-function removeAvatar(P) { scene.remove(P.g); if (P.carObj) scene.remove(P.carObj.g); }
+function removeAvatar(P) { scene.remove(P.g); if (P.carObj) scene.remove(P.carObj.g); (P.petObjs || []).forEach(o => scene.remove(o.g)); P.petObjs = []; }
 function dropPlayer(id, announce) {
   const P = net.players.get(id);
   if (net.role === 'host') { const c = net.conns.get(id); net.conns.delete(id); try { if (c) c.close(); } catch (e) {} if (P) relay({ t: 'leave', id }, id); }
@@ -217,6 +242,8 @@ function setPlayerState(P, m, snap) {
   P.x = clamp(m.x, 0, SX); P.y = clamp(m.y, -20, SY + 10); P.z = clamp(m.z, 0, SZ);
   P.f = finite(m.f) ? m.f : P.f; P.mv = m.mv ? 1 : 0;
   P.car = Array.isArray(m.car) && m.car.length === 4 && m.car.every(finite) ? m.car : null;
+  // guests keep the host's clock so night falls for everyone together
+  if (P.id === 'h' && net.role === 'guest' && finite(m.tod) && Math.abs(m.tod - sky.t) > 0.01) sky.t = ((m.tod % 1) + 1) % 1;
   if (snap || !P.seen) { P.g.position.set(P.x, P.y, P.z); P.seen = true; }
 }
 function myState() {
@@ -230,7 +257,8 @@ function updateNet(dt) {
   if (net.sendT <= 0) {
     net.sendT = 0.1;
     const s = myState(), r2 = v => Math.round(v * 100) / 100;
-    netSend({ t: 'st', d: s.d, x: r2(s.x), y: r2(s.y), z: r2(s.z), f: r2(s.f), mv: s.mv, car: s.car ? s.car.map(r2) : 0 });
+    netSend({ t: 'st', d: s.d, x: r2(s.x), y: r2(s.y), z: r2(s.z), f: r2(s.f), mv: s.mv, car: s.car ? s.car.map(r2) : 0, tod: net.role === 'host' ? Math.round(sky.t * 10000) / 10000 : undefined });
+    sendPetsIfChanged();
   }
   const k = Math.min(1, dt * 10);
   net.players.forEach(P => {
@@ -247,6 +275,7 @@ function updateNet(dt) {
       c.g.rotation.y += wrapAngle(P.car[2] - c.g.rotation.y) * k;
       return;
     }
+    updatePlayerPets(P, dt, here && dim <= D_CASTLE);
     if (!here) return;
     P.g.position.x += (P.x - P.g.position.x) * k;
     P.g.position.y += (P.y - P.g.position.y) * k;
@@ -291,7 +320,7 @@ function say(i) {
 
 // ---------- teleport used when joining a friend ----------
 function teleportTo(d, x, y, z) {
-  dim = d; useDim(d);
+  switchDim(d);
   pl.p.set(x, y, z); pl.vel.set(0, 0, 0);
   portalLock = true;
   hearts.forEach(h => { const on = d === D_MAIN && !collected.has(h.id); h.mesh.visible = on; });
@@ -316,12 +345,19 @@ function renderNet() {
   $('netCodeShow').textContent = net.code;
   const list = $('netPlayers');
   list.textContent = '';
-  [{ name: net.name + ' (ти)', host: net.role === 'host' }].concat([...net.players.values()].map(P => ({ name: P.name, host: P.id === 'h' }))).forEach(p => {
+  [{ name: net.name + ' (ти)', host: net.role === 'host' }].concat([...net.players.values()].map(P => ({ id: P.id, name: P.name, host: P.id === 'h' }))).forEach(p => {
     const li = document.createElement('li');
     const who = document.createElement('div'); who.className = 'who';
     const b = document.createElement('b'); b.textContent = p.name;
     const sp = document.createElement('span'); sp.textContent = p.host ? 'створила кімнату' : 'гостя';
-    who.append(b, sp); li.appendChild(who); list.appendChild(li);
+    who.append(b, sp); li.appendChild(who);
+    // only the girl who made the room can ask someone to leave
+    if (net.role === 'host' && p.id && !p.host) {
+      const kb = document.createElement('button'); kb.className = 'free'; kb.textContent = 'Вигнати';
+      kb.addEventListener('click', () => { kickPlayer(p.id); });
+      li.appendChild(kb);
+    }
+    list.appendChild(li);
   });
 }
 function openNet() {
@@ -347,3 +383,73 @@ PHRASES.forEach((p, i) => {
 $('phraseBtn').addEventListener('click', e => { e.stopPropagation(); phraseMenu.hidden = !phraseMenu.hidden; setMenu(false); });
 addEventListener('pointerdown', e => { if (!phraseMenu.hidden && !e.target.closest('.tools')) phraseMenu.hidden = true; });
 addEventListener('beforeunload', () => { if (net.role !== 'off') netSend({ t: 'leave' }); });
+
+// ---------- friends' pets walk behind them ----------
+function myPets() {
+  return [...friends].map(id => mobs[id]).filter(m => m && m.type !== 'villager').slice(0, 8)
+    .map(m => ({ type: m.type, breed: m.breed ? m.breed.id : '', variant: m.variant || '' }));
+}
+function sendPetsIfChanged() {
+  const l = myPets(), key = JSON.stringify(l);
+  if (key === net.petsKey) return;
+  net.petsKey = key;
+  netSend({ t: 'pets', l });
+}
+function setPlayerPets(P, list) {
+  (P.petObjs || []).forEach(o => scene.remove(o.g));
+  P.petObjs = [];
+  (Array.isArray(list) ? list : []).slice(0, 8).forEach((p, i) => {
+    if (!p || !Object.prototype.hasOwnProperty.call(MOB_TYPES, p.type) || p.type === 'villager') return;
+    const breed = DUCK_BREEDS.find(b => b.id === p.breed) || DUCK_BREEDS[1];
+    const parts = MOB_TYPES[p.type].build({ id: i, breed, variant: p.variant === 'arctic' || p.variant === 'polar' ? p.variant : '' });
+    parts.g.position.copy(P.g.position);
+    scene.add(parts.g);
+    P.petObjs.push({ g: parts.g, legs: parts.legs || [], phase: i });
+  });
+}
+function updatePlayerPets(P, dt, show) {
+  (P.petObjs || []).forEach((o, i) => {
+    o.g.visible = show;
+    if (!show) return;
+    const side = (i % 2 ? 1 : -1) * (1 + Math.floor(i / 2) * 0.7), back = 1.6 + Math.floor(i / 2) * 0.9;
+    const f = P.g.rotation.y, tx = P.g.position.x - Math.sin(f) * back + Math.cos(f) * side, tz = P.g.position.z - Math.cos(f) * back - Math.sin(f) * side;
+    const dx = tx - o.g.position.x, dz = tz - o.g.position.z, d = Math.hypot(dx, dz);
+    const k = Math.min(1, dt * 4);
+    o.g.position.x += dx * k; o.g.position.z += dz * k;
+    o.g.position.y += (surfaceY(Math.floor(o.g.position.x), Math.floor(o.g.position.z)) - o.g.position.y) * Math.min(1, dt * 10);
+    if (d > 0.2) o.g.rotation.y += wrapAngle(Math.atan2(dx, dz) - o.g.rotation.y) * k;
+    o.phase += dt * (d > 0.3 ? 9 : 0);
+    const sw = d > 0.3 ? Math.sin(o.phase) * 0.6 : 0;
+    o.legs.forEach((l, j) => { l.rotation.x = (j === 0 || j === 3) ? sw : -sw; });
+  });
+}
+
+// ---------- one shared picture ----------
+function applyArtNet(m) {
+  if (dim !== D_ART) return;
+  const S = ART.size, W = worlds[D_ART];
+  if (m.t === 'artHi') { netSend({ t: 'artState', l: art.level, cells: artCells() }); return; }
+  if (m.t === 'artState') {
+    if (!art.wantState || !Number.isInteger(m.l) || !PICTURES[m.l] || !Array.isArray(m.cells)) return;
+    art.wantState = false;
+    art.level = m.l; paintArt();
+    m.cells.slice(0, S * S).forEach(([gx, gy, b]) => { if (Number.isInteger(gx) && Number.isInteger(gy) && gx >= 0 && gy >= 0 && gx < S && gy < S && WOOLS.includes(b)) W[I(ART.x0C + gx, ART.y0 + gy, ART.zWall + 1)] = b; });
+    rebuildAround(ART.x0C + 3, ART.zWall); rebuildAround(ART.x0C + 6, ART.zWall);
+    updateArtHud();
+    return;
+  }
+  if (m.t === 'artLvl') { if (Number.isInteger(m.l) && PICTURES[m.l]) { art.level = m.l; paintArt(); } return; }
+  if (m.t === 'art') {
+    if (m.l !== art.level || !Number.isInteger(m.x) || !Number.isInteger(m.y) || m.x < 0 || m.y < 0 || m.x >= S || m.y >= S) return;
+    if (m.b !== 0 && !WOOLS.includes(m.b)) return;
+    W[I(ART.x0C + m.x, ART.y0 + m.y, ART.zWall + 1)] = m.b;
+    rebuildAround(ART.x0C + m.x, ART.zWall);
+    updateArtHud();
+    artCheckDone();
+  }
+}
+function artCells() {
+  const S = ART.size, W = worlds[D_ART], out = [];
+  for (let gy = 0; gy < S; gy++) for (let gx = 0; gx < S; gx++) { const b = W[I(ART.x0C + gx, ART.y0 + gy, ART.zWall + 1)]; if (b) out.push([gx, gy, b]); }
+  return out;
+}

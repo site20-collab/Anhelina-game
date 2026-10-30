@@ -40,7 +40,7 @@ button:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 
 body:not([data-mode="explore"]) .explore-only{display:none!important}
 body[data-mode="explore"] .game-only{display:none!important}
-body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool{display:none!important}
+body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool,body[data-mode="hide"] .build-tool,body[data-mode="jump"] .build-tool{display:none!important}
 
 .game-hud{display:flex;flex-wrap:wrap;gap:4px;max-width:min(300px,44vw);pointer-events:none}
 .game-hud .pill{background:var(--panel);border-radius:10px;padding:3px 9px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--shade);white-space:nowrap}
@@ -81,7 +81,7 @@ body.touch .joy-zone,body.touch .jump{display:block}
 body.touch[data-mode="arena"] .shoot{display:block}
 body[data-mode="race"] .jump{display:none!important}
 body.touch .slot .num{display:none}
-body[data-mode="race"] .hotbar,body[data-mode="arena"] .hotbar{display:none}
+body[data-mode="race"] .hotbar,body[data-mode="arena"] .hotbar,body[data-mode="hide"] .hotbar,body[data-mode="jump"] .hotbar{display:none}
 
 .toast{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%) scale(.9);z-index:7;max-width:calc(100vw - 32px);text-align:center;
   background:var(--panel);border-radius:18px;padding:12px 20px;font-family:var(--display);font-weight:700;font-size:18px;
@@ -190,3 +190,5 @@ body.in-room .net-only{display:inline-flex!important}
 
 .steps{margin:0 0 18px;padding-left:22px;display:grid;gap:8px;font-size:16px;line-height:1.45}
 .steps b{color:var(--violet)}
+.inv-toggle.tab{background:var(--violet);min-width:56px;font-size:13px}
+.hotbar.collapsed .inv-toggle.tab{display:none}

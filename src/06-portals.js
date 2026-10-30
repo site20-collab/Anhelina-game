@@ -27,7 +27,7 @@ function makePortal(frame, top, a, b, label) {
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(2, 3.2), mat);
   plane.position.y = 1.7;
   g.add(plane);
-  if (label) { const s = textSprite(label, 2.6, 'rgba(106,76,255,.88)'); s.position.y = 5.4; g.add(s); }
+  if (label) { const s = textSprite(label, 2, 'rgba(106,76,255,.88)'); s.position.y = 5.2; g.add(s); }
   g.visible = false;
   scene.add(g);
   return { g, mat };
@@ -35,15 +35,19 @@ function makePortal(frame, top, a, b, label) {
 // side: which side of the portal you step out on (+1 south, -1 north)
 const PORTALS = [
   { dim: D_MAIN, to: D_CASTLE, x: CX, z: CZ - 5, side: 1, open: false, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'До замку') },
-  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 36, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
-  { dim: D_CASTLE, to: D_RACE, x: CX - 14, z: CZ + 46, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
-  { dim: D_CASTLE, to: D_ART, x: CX, z: CZ + 50, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
-  { dim: D_CASTLE, to: D_ARENA, x: CX + 14, z: CZ + 46, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
+  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 50, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
+  { dim: D_CASTLE, to: D_RACE, x: CX - 28, z: CZ + 62, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
+  { dim: D_CASTLE, to: D_ART, x: CX - 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
+  { dim: D_CASTLE, to: D_ARENA, x: CX, z: CZ + 66, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
+  { dim: D_CASTLE, to: D_HIDE, x: CX + 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3f9b3a', '#ffd23f', '#5cbf4f', '#c9f29b', 'Хованки') },
+  { dim: D_CASTLE, to: D_JUMP, x: CX + 28, z: CZ + 62, side: -1, open: true, ...makePortal('#7cc8ff', '#ffffff', '#9ad8ff', '#ffffff', 'Стрибки по хмаринках') },
 ];
 const GAME_START = {
   [D_RACE]: { x: CX, z: CZ, face: 0, yaw: Math.PI },
   [D_ART]: { x: CX, z: CZ + 1, face: Math.PI, yaw: 0, pitch: 0.12 },
   [D_ARENA]: { x: CX, z: CZ + 22, face: Math.PI, yaw: 0 },
+  [D_HIDE]: () => hideStart(),
+  [D_JUMP]: () => jumpStart(),
 };
 function placePortal(P) {
   withDim(P.dim, () => {
@@ -57,9 +61,17 @@ function placePortal(P) {
   P.g.position.set(P.x + .5, P.gy, P.z + .5);
 }
 function arrivalFor(to, from) {
-  if (GAME_START[to]) return GAME_START[to];
+  if (GAME_START[to]) return typeof GAME_START[to] === 'function' ? GAME_START[to]() : GAME_START[to];
   const P = PORTALS.find(p => p.dim === to && p.to === from) || PORTALS.find(p => p.dim === to);
   return { x: P.x, z: P.z + P.side * 3, face: P.side > 0 ? 0 : Math.PI, yaw: P.side > 0 ? Math.PI : 0 };
+}
+// a game's world is built on the way in and dropped on the way out, so only the two big worlds stay in memory
+const GEN = { [D_RACE]: () => generateRace(), [D_ART]: () => generateArt(), [D_ARENA]: () => generateArena(), [D_HIDE]: () => generateHide(), [D_JUMP]: () => generateJump() };
+function switchDim(to) {
+  const from = dim;
+  if (to > D_CASTLE && !worlds[to]) { allocDim(to); useDim(to); GEN[to](); }
+  dim = to; useDim(to);
+  if (from !== to) freeDim(from);
 }
 let portalLock = false, traveling = false;
 const fadeEl = document.getElementById('fade');
@@ -71,12 +83,12 @@ function travel(to) {
   sfx.portal();
   setTimeout(() => {
     leaveGame(from);
-    dim = to; useDim(to);
+    switchDim(to);
     const a = arrivalFor(to, from);
     pl.p.set(a.x + .5, surfaceY(a.x, a.z) + 0.01, a.z + .5); pl.vel.set(0, 0, 0);
     pl.facing = a.face; yaw = a.yaw; pitch = view === 'fp' ? 0 : (a.pitch ?? 0.38); camDist = dist;
     portalLock = true;
-    hearts.forEach(h => { const on = to === D_MAIN && !collected.has(h.id); h.mesh.visible = on; h.beam.visible = on; });
+    hearts.forEach(h => { const on = to === D_MAIN && !collected.has(h.id); h.mesh.visible = on; });
     curBiome = -1;
     buildGirl();
     applyMode();
