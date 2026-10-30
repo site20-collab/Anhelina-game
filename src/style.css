@@ -213,3 +213,6 @@ body.in-room .net-only{display:inline-flex!important}
   background:var(--panel);border-radius:14px;padding:6px 8px 6px 12px;font-weight:800;font-size:13px;box-shadow:0 3px 0 var(--shade)}
 .tv-bar button{border:0;border-radius:10px;padding:6px 10px;min-height:34px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer}
 @media (max-width:640px){.tv-bar{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 140px)}.tv-bar span{display:none}}
+.tv-bar button.sound{background:var(--pink);animation:tvpulse 1.2s ease-in-out infinite}
+@keyframes tvpulse{50%{transform:scale(1.07)}}
+@media (prefers-reduced-motion:reduce){.tv-bar button.sound{animation:none}}

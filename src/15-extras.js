@@ -261,14 +261,17 @@ function ensureCss() {
 function ytCmd(func, args = []) {
   try { if (tvVideo.frame && tvVideo.frame.contentWindow) tvVideo.frame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*'); } catch (e) {}
 }
-function startTvVideo(id, from = 0) {
+// muted: started by a friend, so the browser only lets it play silently until this player taps «Увімкнути звук»
+function startTvVideo(id, from = 0, muted = false) {
   ensureCss();
   if (!cssRenderer) { toast('Не вдалося ввімкнути відео на телевізорі', 2000); return; }
   stopTvVideo();
   const wrap = document.createElement('div');
   wrap.style.cssText = 'width:960px;height:544px;background:#000';
   const f = document.createElement('iframe');
-  f.src = window.__TV_SRC || `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&start=${Math.floor(from)}`;
+  f.src = window.__TV_SRC || `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&start=${Math.floor(from)}${muted ? '&mute=1' : ''}&origin=${encodeURIComponent(location.origin)}`;
+  // the player only takes commands after we say we are listening
+  f.addEventListener('load', () => { try { f.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'tv' }), '*'); } catch (e) {} tvVideo.vol = -1; });
   f.allow = 'autoplay; encrypted-media';
   f.title = 'Мультик на телевізорі';
   f.style.cssText = 'width:100%;height:100%;border:0';
@@ -278,8 +281,9 @@ function startTvVideo(id, from = 0) {
   obj.scale.setScalar(TV.w / 960);
   cssScene.add(obj);
   tvScreenMesh.material = holeMat;
-  Object.assign(tvVideo, { id, obj, frame: f, paused: false, vol: -1 });
+  Object.assign(tvVideo, { id, obj, frame: f, paused: false, vol: -1, muted });
   $('tvBar').hidden = false;
+  $('tvSound').hidden = !muted;
   $('tvPause').textContent = 'Пауза';
 }
 function stopTvVideo() {
@@ -290,7 +294,7 @@ function stopTvVideo() {
 }
 function updateTvVideo(dt) {
   // walking into the castle picks up whatever the room is watching
-  if (dim === D_CASTLE && tvShared.id && tvVideo.id !== tvShared.id && ytAllowed()) startTvVideo(tvShared.id, tvElapsed());
+  if (dim === D_CASTLE && tvShared.id && tvVideo.id !== tvShared.id && ytAllowed()) startTvVideo(tvShared.id, tvElapsed(), true);
   if (!tvVideo.id) return;
   if (dim !== D_CASTLE) { stopTvVideo(); return; }
   const d = Math.hypot(pl.p.x - (TV.x + .5), pl.p.z - TV.z);
@@ -300,7 +304,7 @@ function updateTvVideo(dt) {
   if (tvVideo.volT <= 0) {
     tvVideo.volT = 0.5;
     const v = Math.round(clamp(1 - (d - 6) / 26, 0, 1) * 100);
-    if (v !== tvVideo.vol) { tvVideo.vol = v; ytCmd('setVolume', [v]); if (v === 0) ytCmd('mute'); else ytCmd('unMute'); }
+    if (v !== tvVideo.vol) { tvVideo.vol = v; ytCmd('setVolume', [v]); if (v === 0 || tvVideo.muted) ytCmd('mute'); else ytCmd('unMute'); }
   }
 }
 function renderCss() {
@@ -308,6 +312,13 @@ function renderCss() {
   tvVideo.obj.visible = dim === D_CASTLE && !wardrobeOpen;
   cssRenderer.render(cssScene, camera);
 }
+// this tap is what lets the browser play the sound
+$('tvSound').addEventListener('click', () => {
+  tvVideo.muted = false; tvVideo.vol = -1;
+  ytCmd('unMute'); ytCmd('playVideo');
+  $('tvSound').hidden = true;
+  tvVideo.paused = false; $('tvPause').textContent = 'Пауза';
+});
 $('tvPause').addEventListener('click', () => {
   tvVideo.paused = !tvVideo.paused;
   ytCmd(tvVideo.paused ? 'pauseVideo' : 'playVideo');
@@ -318,5 +329,5 @@ function applyTvNet(m, P) {
   const id = typeof m.tv === 'string' && /^[\w-]{11}$/.test(m.tv) ? m.tv : '';
   tvShared.id = id; tvShared.startedAt = performance.now() - clamp(Number(m.el) || 0, 0, 86400) * 1000;
   if (!id) { if (tvVideo.id) { stopTvVideo(); if (P) toast(`${P.name} вимкнула мультик`, 1600); } return; }
-  if (dim === D_CASTLE && ytAllowed()) { startTvVideo(id, tvElapsed()); if (P) toast(`${P.name} увімкнула мультик на телевізорі`, 2200); }
+  if (dim === D_CASTLE && ytAllowed()) { startTvVideo(id, tvElapsed(), true); if (P) toast(`${P.name} увімкнула мультик. Натисни «Увімкнути звук» угорі`, 3500); }
 }
