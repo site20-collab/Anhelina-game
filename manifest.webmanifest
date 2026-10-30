@@ -1,0 +1,18 @@
+{
+  "name": "Світ Ангеліни",
+  "short_name": "Ангеліна",
+  "description": "Кубиковий світ, де Ангеліна будує, дружить з тваринками і грає в гонки, картинки та цукеркову битву.",
+  "lang": "uk",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#9fd8ff",
+  "theme_color": "#ff6fae",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

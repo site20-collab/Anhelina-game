@@ -11,6 +11,16 @@ HEAD = '''<title>Світ Ангеліни</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Nunito:wght@600;800&display=swap">
 '''
+# only the GitHub site can be installed as an app; the Claude preview has no service worker
+APP = '''<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#ff6fae">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ангеліна">
+'''
 THREE = ('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n'
          '<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>\n')
 
@@ -26,7 +36,7 @@ def main():
     css, body, script = page()
     full = ('<!doctype html>\n<html lang="uk">\n<head>\n<meta charset="utf-8">\n'
             '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">\n'
-            f'{HEAD}<style>\n{css}</style>\n</head>\n<body>\n{body}\n{THREE}{script}</body>\n</html>\n')
+            f'{HEAD}{APP}<style>\n{css}</style>\n</head>\n<body>\n{body}\n{THREE}{script}</body>\n</html>\n')
     (ROOT / 'index.html').write_text(full)
     if len(sys.argv) > 1:
         pathlib.Path(sys.argv[1]).write_text(f'{HEAD}<style>\n{css}</style>\n{body}\n{THREE}{script}')

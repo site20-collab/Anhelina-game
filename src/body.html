@@ -19,6 +19,7 @@
     <div class="menu" id="menu" hidden>
       <button id="exitBtn" class="mitem exit game-only">До замку</button>
       <button id="netBtn" class="mitem">Грати з друзями</button>
+      <button id="installBtn" class="mitem" hidden>Встановити гру</button>
       <button id="viewBtn" class="mitem">Камера: ззаду</button>
       <button id="wardrobeBtn" class="mitem explore-only">Одяг</button>
       <button id="soundBtn" class="mitem">Звук: увімкнено</button>
@@ -78,6 +79,15 @@
       </div>
     </div>
     <p class="net-status" id="netStatus" role="status"></p>
+  </div>
+</div>
+
+<div class="overlay" id="installPanel" hidden>
+  <div class="card">
+    <h1>Встановити <span>гру</span></h1>
+    <p id="installHow"></p>
+    <ol class="steps" id="installSteps"></ol>
+    <div class="actions"><button class="play" id="installClose">Зрозуміло</button></div>
   </div>
 </div>
 

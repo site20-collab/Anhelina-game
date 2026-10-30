@@ -187,3 +187,6 @@ body.in-room .net-only{display:inline-flex!important}
 .code-big{font-size:18px;font-weight:800}
 .code-big b{display:block;font-family:var(--display);font-size:48px;letter-spacing:.18em;color:var(--pink);font-variant-numeric:tabular-nums}
 .net-status{margin:12px 0 0;font-weight:800;color:#c23a76;min-height:1em}
+
+.steps{margin:0 0 18px;padding-left:22px;display:grid;gap:8px;font-size:16px;line-height:1.45}
+.steps b{color:var(--violet)}
