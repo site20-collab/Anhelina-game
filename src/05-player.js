@@ -197,7 +197,7 @@ function pickMob(maxT) {
 let building = false, selected = 0;
 function setBlock(x, y, z, b) {
   world[I(x, y, z)] = b;
-  if (dim <= D_CASTLE) { editsByDim[dim][I(x, y, z)] = b; scheduleSave(); }
+  if (dim <= D_CASTLE) { editsByDim[dim][I(x, y, z)] = b; scheduleSave(); netSend({ t: 'block', d: dim, i: I(x, y, z), b }); }
   rebuildAround(x, z);
 }
 function tapAt(cx, cy, place) {

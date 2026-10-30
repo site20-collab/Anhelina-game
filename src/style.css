@@ -171,3 +171,19 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
 .mitem:hover{background:var(--soft)}
 .mitem.exit{background:var(--ink);color:#fff}
 @media (max-height:520px){.tool.dots{min-width:40px}.mitem{min-height:36px;padding:7px 12px;font-size:14px}}
+
+/* playing together */
+.net-only{display:none!important}
+body.in-room .net-only{display:inline-flex!important}
+.room-tag{border:0;align-self:flex-start;background:#fff0f7;color:#c23a76;border-radius:8px;padding:2px 8px;font-weight:800;font-size:12px;cursor:pointer;margin-top:2px}
+.menu.phrases{right:auto;left:0;min-width:200px}
+.field{display:grid;gap:6px;margin:0 0 14px;font-weight:800;font-size:14px}
+.field input,.join-row input{font:inherit;font-size:18px;font-weight:800;padding:10px 12px;border:2px solid #e3dcf5;border-radius:14px;min-width:0;color:var(--ink);background:#fff}
+.field input:focus,.join-row input:focus{outline:3px solid var(--violet);outline-offset:1px}
+.join-row{display:flex;gap:8px;margin-top:12px}
+.join-row input{flex:1 1 auto;letter-spacing:.2em;text-align:center}
+.join-row .ghost{flex:0 0 auto}
+.ghost.back{width:100%;margin-top:12px}
+.code-big{font-size:18px;font-weight:800}
+.code-big b{display:block;font-family:var(--display);font-size:48px;letter-spacing:.18em;color:var(--pink);font-variant-numeric:tabular-nums}
+.net-status{margin:12px 0 0;font-weight:800;color:#c23a76;min-height:1em}

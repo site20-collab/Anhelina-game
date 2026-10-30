@@ -56,7 +56,16 @@ function startRace() {
   race.cars.forEach(c => scene.remove(c.g));
   race.cars = [];
   const T = TRACK, N = T.N;
-  CAR_SPECS.forEach((sp, k) => {
+  // friends in the race take grid slots in a fixed order; computer cars fill the rest
+  const racers = [...net.players.values()].filter(P => P.d === D_RACE).map(P => P.id).concat(net.myId).sort();
+  const mySlot = racers.indexOf(net.myId);
+  const ai = CAR_SPECS.filter(sp => !sp.player).slice(0, Math.max(1, 4 - racers.length));
+  const me = { ...CAR_SPECS[1], color: (WARDROBE.dress.items.find(i => i.id === outfit.dress) || {}).sw || '#ff4f9a' };
+  const slots = [];
+  let next = racers.length;
+  ai.forEach(sp => slots.push([sp, next++]));
+  slots.push([me, mySlot]);
+  slots.forEach(([sp, k]) => {
     const row = Math.floor(k / 2), lane = k % 2 ? 2.3 : -2.3;
     const i = (N - 6 - row * 14) % N, p = T.pts[i];
     const { g, wheels } = buildCar(sp.color, sp.driver);
@@ -155,10 +164,11 @@ function updateRace(dt) {
       else ctl = aiControls(c);
       carStep(c, dt, ctl.throttle, ctl.brake, ctl.steer);
       if (!c.done && c.lap > race.laps) {
-        c.done = true; c.time = race.t; race.finished++; c.place = race.finished;
+        c.done = true; c.time = race.t; race.finished++; c.place = race.finished + (c.player ? remoteRacersAhead(raceProgress(c)).ahead : 0);
         if (c.player) finishRace();
       }
     });
+    pushFromRemoteCars(P);
     for (let a = 0; a < race.cars.length; a++) for (let b = a + 1; b < race.cars.length; b++) {
       const A = race.cars[a], B = race.cars[b], dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
       if (d > 0.01 && d < 1.9) { const push = (1.9 - d) / 2; A.x -= dx / d * push; A.z -= dz / d * push; B.x += dx / d * push; B.z += dz / d * push; A.speed *= 0.985; B.speed *= 0.985; }
@@ -169,8 +179,9 @@ function updateRace(dt) {
     race.engine.g.gain.value = soundOn && race.state !== 'off' ? 0.012 : 0;
   }
   const score = c => c.done ? 1000 - c.place : raceProgress(c);
-  const place = 1 + race.cars.filter(c => c !== P && score(c) > score(P)).length;
-  setGameHud([`Коло ${clamp(P.lap, 1, race.laps)} / ${race.laps}`, `Місце ${P.done ? P.place : place} / 4`, `Час ${fmtTime(P.done ? P.time : race.t)}`]);
+  const rem = remoteRacersAhead(raceProgress(P));
+  const place = 1 + race.cars.filter(c => c !== P && score(c) > score(P)).length + (P.done ? 0 : rem.ahead);
+  setGameHud([`Коло ${clamp(P.lap, 1, race.laps)} / ${race.laps}`, `Місце ${P.done ? P.place : place} / ${race.cars.length + rem.total}`, `Час ${fmtTime(P.done ? P.time : race.t)}`]);
 }
 function finishRace() {
   const P = race.player;
@@ -179,9 +190,9 @@ function finishRace() {
   sfx.win();
   bigText('Фініш!', 1400);
   const titles = ['Перемога! Перше місце!', 'Друге місце!', 'Третє місце!', 'Четверте місце'];
-  setTimeout(() => showResult(titles[P.place - 1],
+  setTimeout(() => showResult(titles[P.place - 1] || `${P.place}-е місце`,
     `Час: ${fmtTime(P.time)}. Найкращий час: ${fmtTime(race.best)}.${P.place === 1 ? ' Ангеліна найшвидша на трасі!' : ' Спробуй ще раз, щоб приїхати першою!'}`,
-    () => startRace()), 1600);
+    () => { startRace(); netSend({ t: 'raceStart' }); }), 1600);
 }
 const raceLook = new THREE.Vector3(), raceCam = new THREE.Vector3();
 function raceCamera(dt) {

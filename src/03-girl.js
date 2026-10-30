@@ -21,6 +21,10 @@ const WARDROBE = {
     { id: 'bow', name: 'Бантик' }, { id: 'none', name: 'Нічого' }, { id: 'hat', name: 'Капелюшок' },
     { id: 'beanie', name: 'Шапка з помпоном' }, { id: 'bunny', name: 'Вушка зайчика' }, { id: 'cat', name: 'Котячі вушка' }, { id: 'flowers', name: 'Віночок' },
   ] },
+  hairColor: { title: 'Колір волосся', items: [
+    { id: 'black', name: 'Чорне', sw: '#16110f', c: '#16110f' }, { id: 'brown', name: 'Каштанове', sw: '#5a3820', c: '#5a3820' },
+    { id: 'blonde', name: 'Світле', sw: '#e8c46a', c: '#e8c46a' }, { id: 'red', name: 'Руде', sw: '#b5482a', c: '#b5482a' },
+  ] },
   hair: { title: 'Зачіска', items: [
     { id: 'long', name: 'Довге волосся' }, { id: 'pigtails', name: 'Хвостики' }, { id: 'bun', name: 'Гулька' }, { id: 'braid', name: 'Коса' },
   ] },
@@ -28,21 +32,27 @@ const WARDROBE = {
     { id: 'none', name: 'Без окулярів' }, { id: 'hearts', name: 'Сердечка', sw: '#ff4f9a' }, { id: 'star', name: 'Зірочки', sw: '#ffd23f' }, { id: 'round', name: 'Круглі', sw: '#2b2140' },
   ] },
 };
-let outfit = { dress: 'pink', shoes: 'white', hat: 'bow', hair: 'long', glasses: 'none' };
+let outfit = { dress: 'pink', shoes: 'white', hat: 'bow', hair: 'long', hairColor: 'black', glasses: 'none' };
 const pick = (cat) => WARDROBE[cat].items.find(i => i.id === outfit[cat]) || WARDROBE[cat].items[0];
 
 const girl = new THREE.Group();
 scene.add(girl);
 let body = null, legs = [], arms = [], eyes = [], crown = null, blaster = null;
-const nameTag = textSprite('Ангеліна', 1.15);
-nameTag.position.y = 2.15;
-girl.add(nameTag);
+let nameTag = null;
+function setNameTag(name) {
+  if (nameTag) girl.remove(nameTag);
+  nameTag = textSprite(name, 1.15);
+  nameTag.position.y = 2.15;
+  girl.add(nameTag);
+}
+setNameTag('Ангеліна');
 
-function buildGirl() {
-  if (body) girl.remove(body);
-  body = new THREE.Group();
-  girl.add(body);
-  const D = pick('dress'), S = pick('shoes'), hat = outfit.hat, hair = outfit.hair, gl = outfit.glasses;
+// builds any girl in any outfit: Angelina herself and friends who join the room
+function buildAvatar(o, d) {
+  const body = new THREE.Group();
+  const pk = cat => WARDROBE[cat].items.find(i => i.id === o[cat]) || WARDROBE[cat].items[0];
+  const D = pk('dress'), S = pk('shoes'), hat = o.hat, hair = o.hair, gl = o.glasses, HAIR = pk('hairColor').c;
+  let legs, arms, eyes, crown, blaster;
   legs = [-0.12, 0.12].map(x => {
     const p = pivot(x, 0.55, 0, body);
     box(0.2, 0.45, 0.22, D.legs, 0, -0.225, 0, p);
@@ -79,7 +89,7 @@ function buildGirl() {
   box(0.07, 0.04, 0.02, '#ff9db4', -0.19, 1.28, 0.245, body);
   box(0.07, 0.04, 0.02, '#ff9db4', 0.19, 1.28, 0.245, body);
   box(0.1, 0.03, 0.02, '#c4486a', 0, 1.24, 0.245, body);
-  // black hair, always
+  // hair: black for Angelina unless she picks another colour
   box(0.58, 0.12, 0.54, HAIR, 0, 1.66, 0, body);
   box(0.58, 0.56, 0.1, HAIR, 0, 1.38, -0.25, body);
   box(0.07, 0.4, 0.5, HAIR, -0.285, 1.44, -0.01, body);
@@ -90,7 +100,7 @@ function buildGirl() {
   if (hair === 'bun') { box(0.26, 0.24, 0.24, HAIR, 0, 1.8, -0.14, body); box(0.28, 0.05, 0.05, '#ff6fae', 0, 1.7, -0.02, body); }
   if (hair === 'braid') { [[0.14, 1.12], [0.12, 0.96], [0.1, 0.82]].forEach(([w, y]) => box(w, 0.16, w, HAIR, 0, y, -0.29, body)); box(0.12, 0.05, 0.12, '#ff6fae', 0, 0.73, -0.29, body); }
   // headwear; in the kingdom the crown takes its place
-  const inKingdom = dim === D_CASTLE;
+  const inKingdom = d === D_CASTLE;
   crown = new THREE.Group(); body.add(crown);
   box(0.4, 0.08, 0.4, '#f4c23f', 0, 1.77, 0, crown);
   [[-0.16, -0.16], [0.16, -0.16], [-0.16, 0.16], [0.16, 0.16], [0, 0.17], [0, -0.17]].forEach(([x, z]) => box(0.07, 0.1, 0.07, '#f4c23f', x, 1.86, z, crown));
@@ -120,7 +130,13 @@ function buildGirl() {
   box(0.1, 0.1, 0.1, '#ffd23f', 0, -0.48, 0.36, blaster);
   box(0.06, 0.2, 0.06, '#ffffff', 0, -0.32, 0.02, blaster);
   box(0.16, 0.16, 0.05, '#9a7bff', 0, -0.2, 0.02, blaster);
-  blaster.visible = dim === D_ARENA;
+  blaster.visible = d === D_ARENA;
+  return { body, legs, arms, eyes, crown, blaster };
+}
+function buildGirl() {
+  if (body) girl.remove(body);
+  ({ body, legs, arms, eyes, crown, blaster } = buildAvatar(outfit, dim));
+  girl.add(body);
 }
 
 // first-person view-model of the blaster
@@ -146,7 +162,7 @@ function renderWardrobe() {
       b.className = 'chip' + (outfit[cat] === item.id ? ' on' : '');
       if (item.sw) { const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = item.sw; b.appendChild(sw); }
       b.append(item.name);
-      b.addEventListener('click', () => { outfit[cat] = item.id; buildGirl(); renderWardrobe(); scheduleSave(); sfx.click(); });
+      b.addEventListener('click', () => { outfit[cat] = item.id; buildGirl(); renderWardrobe(); scheduleSave(); sfx.click(); netSend({ t: 'outfit', o: outfit }); });
       chips.appendChild(b);
     });
     sec.append(h, chips);

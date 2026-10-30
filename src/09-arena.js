@@ -1,5 +1,6 @@
 // ---------- candy monster arena ----------
-const arena = { hp: 5, wave: 0, score: 0, best: 0, monsters: [], candies: [], drops: [], queue: [], spawnT: 0, state: 'off', pause: 0, cool: 0, firing: false, fireX: 0, fireY: 0, fireCenter: false };
+const arena = { hp: 5, wave: 0, score: 0, best: 0, monsters: [], candies: [], drops: [], queue: [], spawnT: 0, state: 'off', pause: 0, cool: 0, firing: false, fireX: 0, fireY: 0, fireCenter: false,
+  lead: true, remote: new Map(), midSeq: 0, snapT: 0 };
 const WAVES = [
   { gummy: 5 },
   { gummy: 6, lollipop: 3 },
@@ -63,6 +64,7 @@ function enterArena() {
 }
 function clearArena() {
   arena.monsters.forEach(m => scene.remove(m.g)); arena.monsters = [];
+  arena.remote.forEach(r => scene.remove(r.g)); arena.remote.clear();
   arena.candies.forEach(c => scene.remove(c.mesh)); arena.candies = [];
   arena.drops.forEach(d => scene.remove(d.mesh)); arena.drops = [];
 }
@@ -83,7 +85,7 @@ function spawnMonster(type) {
   g.add(body);
   def.build(body, arena.monsters.length + arena.wave * 3);
   const a = Math.random() * Math.PI * 2, r = 27;
-  const m = { type, def, g, body, hp: def.hp, flash: 0, hopT: Math.random(), facing: 0,
+  const m = { mid: `${net.myId}:${++arena.midSeq}`, type, def, g, body, hp: def.hp, flash: 0, hopT: Math.random(), facing: 0,
     e: { p: new THREE.Vector3(CX + .5 + Math.cos(a) * r, KH + 1.01, CZ + .5 + Math.sin(a) * r), vel: new THREE.Vector3(), hw: def.hw, h: def.h, onGround: false, blocked: false, jumpV: 5.5, float: true } };
   scene.add(g);
   burst(m.e.p.x - .5, m.e.p.y, m.e.p.z - .5, '#fff', 10, ['#ffffff', '#ff9fd2', '#c9a8ff']);
@@ -122,7 +124,7 @@ function aimPoint(cx, cy) {
 }
 function fireAtScreen(cx, cy) { const [x, y, z] = aimPoint(cx, cy); fireCandy(x, y, z); }
 function hurtPlayer(from) {
-  if (hurtT > 0 || arena.state !== 'fight') return;
+  if (hurtT > 0 || arena.state !== 'fight' || arena.hp <= 0) return;
   hurtT = 1.2;
   arena.hp--;
   sfx.hurt();
@@ -131,26 +133,42 @@ function hurtPlayer(from) {
   const dx = pl.p.x - from.x, dz = pl.p.z - from.z, d = Math.hypot(dx, dz) || 1;
   pl.vel.x += dx / d * 9; pl.vel.z += dz / d * 9; pl.vel.y = 6;
   updateArenaHud();
-  if (arena.hp <= 0) {
+  if (arena.hp <= 0 && arenaCoop()) {
+    toast('Ой! Зараз повернешся', 1600);
+    setTimeout(() => { if (dim !== D_ARENA) return; arena.hp = 5; const a = GAME_START[D_ARENA]; pl.p.set(a.x + .5, KH + 1.01, a.z + .5); updateArenaHud(); }, 1800);
+  } else if (arena.hp <= 0) {
     arena.state = 'over';
     setTimeout(() => showResult('Ой! Монстрики виграли', `Ангеліна дійшла до хвилі ${arena.wave} і набрала ${arena.score} очок. Спробуєш ще?`, () => enterArena()), 900);
   }
 }
+// with friends in the arena one player runs the monsters and the others see the same ones
+function arenaPeers() { return [...net.players.values()].filter(P => P.d === D_ARENA); }
+function arenaCoop() { return net.role !== 'off' && arenaPeers().length > 0; }
+function arenaLeader() { const ids = arenaPeers().map(P => P.id).concat(net.myId).sort(); return ids[0] === net.myId; }
 function updateArena(dt) {
   if (arena.state === 'off') return;
+  const coop = arenaCoop(), lead = !coop || arenaLeader();
+  if (lead !== arena.lead) {
+    arena.lead = lead;
+    if (lead) {
+      arena.remote.forEach(r => scene.remove(r.g)); arena.remote.clear();
+      if (arena.state !== 'won') { arena.wave = Math.max(0, arena.wave - 1); arena.state = 'pause'; arena.pause = 1.5; arena.queue = []; }
+    } else { arena.monsters.forEach(m => scene.remove(m.g)); arena.monsters = []; arena.queue = []; }
+  }
   arena.cool = Math.max(0, arena.cool - dt);
   hurtT = Math.max(0, hurtT - dt);
   if (arena.firing && playing) {
     if (arena.fireCenter) fireAtScreen(innerWidth / 2, innerHeight / 2);
     else fireAtScreen(arena.fireX, arena.fireY);
   }
-  if (arena.state === 'pause') { arena.pause -= dt; if (arena.pause <= 0) startWave(); }
-  if (arena.state === 'fight') {
+  if (lead && arena.state === 'pause') { arena.pause -= dt; if (arena.pause <= 0) startWave(); }
+  if (lead && arena.state === 'fight') {
     arena.spawnT -= dt;
     if (arena.queue.length && arena.spawnT <= 0 && arena.monsters.length < 9) { spawnMonster(arena.queue.shift()); arena.spawnT = 0.9; }
     if (!arena.queue.length && !arena.monsters.length) {
       if (arena.wave >= WAVES.length) {
         arena.state = 'won';
+        if (coop) netSend({ t: 'arenaWin', sc: arena.score });
         arena.best = Math.max(arena.best, arena.score); scheduleSave();
         sfx.win(); bigText('Перемога!', 1500);
         setTimeout(() => showResult('Перемога! Королівство врятоване', `Ангеліна перемогла всіх цукеркових монстриків і набрала ${arena.score} очок. Рекорд: ${arena.best}.`, () => enterArena()), 1600);
@@ -158,8 +176,13 @@ function updateArena(dt) {
     }
   }
   const t = performance.now() / 1000;
+  const goals = [pl.p].concat(coop ? arenaPeers().map(P => ({ x: P.x, y: P.y, z: P.z })) : []);
   arena.monsters.forEach(m => {
-    const e = m.e, dx = pl.p.x - e.p.x, dz = pl.p.z - e.p.z, d = Math.hypot(dx, dz) || 1;
+    const e = m.e;
+    let goal = goals[0], gd = Infinity;
+    goals.forEach(q => { const dd = Math.hypot(q.x - e.p.x, q.z - e.p.z); if (dd < gd) { gd = dd; goal = q; } });
+    const dx = goal.x - e.p.x, dz = goal.z - e.p.z, d = Math.hypot(dx, dz) || 1;
+    const pd = Math.hypot(pl.p.x - e.p.x, pl.p.z - e.p.z);
     const go = arena.state === 'fight' ? 1 : 0;
     m.hopT -= dt;
     const hop = m.def.hop && m.hopT <= 0 && e.onGround;
@@ -171,8 +194,9 @@ function updateArena(dt) {
     const squash = e.onGround ? 1 - Math.abs(Math.sin(t * 8 + m.hopT)) * 0.08 : 1.08;
     const pop = 1 + m.flash * 1.5;
     m.body.scale.set(pop / Math.sqrt(squash), squash * pop, pop / Math.sqrt(squash));
-    if (d < m.def.hw + 0.45 && Math.abs(e.p.y - pl.p.y) < 1.5) { hurtPlayer(e.p); e.vel.x -= dx / d * 6; e.vel.z -= dz / d * 6; }
+    if (pd < m.def.hw + 0.45 && Math.abs(e.p.y - pl.p.y) < 1.5) { hurtPlayer(e.p); e.vel.x -= dx / d * 6; e.vel.z -= dz / d * 6; }
   });
+  if (!lead) updateRemoteMonsters(dt, t);
   for (let i = arena.candies.length - 1; i >= 0; i--) {
     const c = arena.candies[i];
     c.life -= dt; c.v.y -= 5 * dt;
@@ -180,14 +204,15 @@ function updateArena(dt) {
     c.mesh.rotation.x += dt * 12; c.mesh.rotation.y += dt * 9;
     const p = c.mesh.position;
     let hitM = null;
-    for (const m of arena.monsters) {
-      const r = Math.max(m.def.hw, m.def.h / 2) + 0.18;
-      if (Math.hypot(p.x - m.e.p.x, p.y - (m.e.p.y + m.def.h / 2), p.z - m.e.p.z) < r) { hitM = m; break; }
+    for (const m of lead ? arena.monsters : arena.remote.values()) {
+      const mp = m.e ? m.e.p : m.p, r = Math.max(m.def.hw, m.def.h / 2) + 0.18;
+      if (Math.hypot(p.x - mp.x, p.y - (mp.y + m.def.h / 2), p.z - mp.z) < r) { hitM = m; break; }
     }
     if (hitM) {
-      hitM.hp--; hitM.flash = 0.12;
+      hitM.flash = 0.12;
       sfx.hit();
-      if (hitM.hp <= 0) popMonster(hitM);
+      if (lead) { hitM.hp--; if (hitM.hp <= 0) popMonster(hitM); }
+      else netSend({ t: 'hit', mid: hitM.mid });
     }
     if (hitM || c.life <= 0 || solidAt(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z))) {
       if (!hitM && c.life > 0) burst(p.x - .5, p.y - .5, p.z - .5, '#fff', 3, CANDY_COLORS);
@@ -203,6 +228,61 @@ function updateArena(dt) {
       scene.remove(dr.mesh); arena.drops.splice(i, 1);
     }
   }
+  if (lead && coop) {
+    arena.snapT -= dt;
+    if (arena.snapT <= 0) {
+      arena.snapT = 0.1;
+      const r2 = v => Math.round(v * 100) / 100;
+      netSend({ t: 'mon', w: arena.wave, s: arena.state, sc: arena.score,
+        m: arena.monsters.map(m => [m.mid, m.type, r2(m.e.p.x), r2(m.e.p.y), r2(m.e.p.z), r2(m.facing), m.flash > 0 ? 1 : 0]) });
+    }
+  }
+}
+function applyMonSnap(s) {
+  if (dim !== D_ARENA || arena.lead || arena.state === 'off' || !Array.isArray(s.m)) return;
+  arena.wave = clamp(s.w | 0, 0, WAVES.length); arena.score = s.sc | 0;
+  if (arena.state !== 'won' && ['pause', 'fight'].includes(s.s)) arena.state = s.s;
+  const seen = new Set();
+  s.m.slice(0, 20).forEach(([mid, type, x, y, z, f, fl]) => {
+    if (!Object.prototype.hasOwnProperty.call(MONSTERS, type) || ![x, y, z, f].every(Number.isFinite)) return;
+    mid = String(mid).slice(0, 24);
+    seen.add(mid);
+    let r = arena.remote.get(mid);
+    if (!r) {
+      const g = new THREE.Group(), body = new THREE.Group();
+      g.add(body); MONSTERS[type].build(body, arena.remote.size + arena.wave * 3);
+      scene.add(g);
+      r = { mid, type, def: MONSTERS[type], g, body, p: new THREE.Vector3(x, y, z), tx: x, ty: y, tz: z, f, tf: f, flash: 0 };
+      arena.remote.set(mid, r);
+    }
+    r.tx = x; r.ty = y; r.tz = z; r.tf = f;
+    if (fl) r.flash = 0.12;
+  });
+  arena.remote.forEach((r, mid) => {
+    if (seen.has(mid)) return;
+    if (r.p.distanceTo(pl.p) < 60) { sfx.poof(); burst(r.p.x - .5, r.p.y + r.def.h / 2 - .5, r.p.z - .5, '#fff', 14, ['#ff4f9a', '#ffd23f', '#7cc8ff', '#7be0a0', '#b388ff', '#ffffff']); }
+    scene.remove(r.g); arena.remote.delete(mid);
+  });
+  updateArenaHud();
+}
+function updateRemoteMonsters(dt, t) {
+  const k = Math.min(1, dt * 12);
+  arena.remote.forEach(r => {
+    r.p.x += (r.tx - r.p.x) * k; r.p.y += (r.ty - r.p.y) * k; r.p.z += (r.tz - r.p.z) * k;
+    r.f += wrapAngle(r.tf - r.f) * k;
+    r.g.position.copy(r.p); r.g.rotation.y = r.f;
+    r.flash = Math.max(0, r.flash - dt);
+    const squash = 1 - Math.abs(Math.sin(t * 8 + r.tx)) * 0.08, pop = 1 + r.flash * 1.5;
+    r.body.scale.set(pop / Math.sqrt(squash), squash * pop, pop / Math.sqrt(squash));
+    if (Math.hypot(pl.p.x - r.p.x, pl.p.z - r.p.z) < r.def.hw + 0.45 && Math.abs(r.p.y - pl.p.y) < 1.5) hurtPlayer(r.p);
+  });
+}
+function applyHit(mid) {
+  if (dim !== D_ARENA || !arena.lead) return;
+  const m = arena.monsters.find(x => x.mid === mid);
+  if (!m) return;
+  m.hp--; m.flash = 0.12;
+  if (m.hp <= 0) popMonster(m);
 }
 function popMonster(m) {
   const p = m.e.p;

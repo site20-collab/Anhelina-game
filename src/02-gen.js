@@ -144,7 +144,8 @@ function placeHearts() {
       if (!b || b === LEAVES || b === PINKLEAVES || isPlant(b)) { g--; continue; }
       break;
     }
-    if (!ok) continue;
+    // Angelina must fit under whatever hangs above the heart
+    if (!ok || opaqueAt(x, g, z) || opaqueAt(x, g + 1, z) || opaqueAt(x, g + 2, z)) continue;
     const mesh = new THREE.Mesh(heartGeo, heartMat);
     mesh.position.set(x + 0.5, g + 1, z + 0.5);
     mesh.scale.setScalar(0.9);

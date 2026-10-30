@@ -181,6 +181,22 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
 .mitem:hover{background:var(--soft)}
 .mitem.exit{background:var(--ink);color:#fff}
 @media (max-height:520px){.tool.dots{min-width:40px}.mitem{min-height:36px;padding:7px 12px;font-size:14px}}
+
+/* playing together */
+.net-only{display:none!important}
+body.in-room .net-only{display:inline-flex!important}
+.room-tag{border:0;align-self:flex-start;background:#fff0f7;color:#c23a76;border-radius:8px;padding:2px 8px;font-weight:800;font-size:12px;cursor:pointer;margin-top:2px}
+.menu.phrases{right:auto;left:0;min-width:200px}
+.field{display:grid;gap:6px;margin:0 0 14px;font-weight:800;font-size:14px}
+.field input,.join-row input{font:inherit;font-size:18px;font-weight:800;padding:10px 12px;border:2px solid #e3dcf5;border-radius:14px;min-width:0;color:var(--ink);background:#fff}
+.field input:focus,.join-row input:focus{outline:3px solid var(--violet);outline-offset:1px}
+.join-row{display:flex;gap:8px;margin-top:12px}
+.join-row input{flex:1 1 auto;letter-spacing:.2em;text-align:center}
+.join-row .ghost{flex:0 0 auto}
+.ghost.back{width:100%;margin-top:12px}
+.code-big{font-size:18px;font-weight:800}
+.code-big b{display:block;font-family:var(--display);font-size:48px;letter-spacing:.18em;color:var(--pink);font-variant-numeric:tabular-nums}
+.net-status{margin:12px 0 0;font-weight:800;color:#c23a76;min-height:1em}
 </style>
 </head>
 <body>
@@ -192,15 +208,19 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
       <span class="name">Світ Ангеліни</span>
       <span class="stats explore-only"><span class="h" id="hearts">♥ 0 / 5</span><button class="fbtn" id="friends" aria-label="Мої друзі">Друзі: 0</button></span>
       <span class="biome" id="biome">Луки</span>
+      <button class="room-tag" id="roomTag" hidden></button>
     </div>
     <div class="game-hud" id="gameHud" hidden></div>
     <div class="compass" id="compass" hidden><span class="arrow" id="compassArrow">▲</span><span id="compassText"></span></div>
   </div>
   <div class="tools">
+    <button id="phraseBtn" class="tool net-only">Фрази</button>
+    <div class="menu phrases" id="phraseMenu" hidden></div>
     <button id="modeBtn" class="tool break build-tool">Ламаю</button>
     <button id="menuBtn" class="tool dots" aria-label="Меню" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
     <div class="menu" id="menu" hidden>
       <button id="exitBtn" class="mitem exit game-only">До замку</button>
+      <button id="netBtn" class="mitem">Грати з друзями</button>
       <button id="viewBtn" class="mitem">Камера: ззаду</button>
       <button id="wardrobeBtn" class="mitem explore-only">Одяг</button>
       <button id="soundBtn" class="mitem">Звук: увімкнено</button>
@@ -238,6 +258,31 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
   </div>
 </div>
 
+<div class="overlay" id="netPanel" hidden>
+  <div class="card">
+    <h1>Грати <span>з друзями</span></h1>
+    <div id="netOff">
+      <p>Створи кімнату й скажи подружці код. Або введи код кімнати, яку створила подружка.</p>
+      <label class="field">Твоє ім'я, його побачать подружки<input id="netName" maxlength="14" autocomplete="off"></label>
+      <div class="actions"><button class="play" id="netHost">Створити кімнату</button></div>
+      <div class="join-row">
+        <input id="netCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Код з 4 цифр" autocomplete="off" aria-label="Код кімнати">
+        <button class="ghost" id="netJoin">Приєднатися</button>
+      </div>
+      <button class="ghost back" id="netBack">Назад до гри</button>
+    </div>
+    <div id="netOn" hidden>
+      <p class="code-big">Код кімнати <b id="netCodeShow"></b></p>
+      <ul class="flist" id="netPlayers"></ul>
+      <div class="actions">
+        <button class="play" id="netClose">Грати</button>
+        <button class="ghost warn" id="netLeave">Вийти з кімнати</button>
+      </div>
+    </div>
+    <p class="net-status" id="netStatus" role="status"></p>
+  </div>
+</div>
+
 <div class="overlay" id="result" hidden>
   <div class="card">
     <h1 id="resTitle"></h1>
@@ -252,7 +297,7 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
 <div class="overlay" id="overlay">
   <div class="card">
     <h1>Привіт, <span>Ангеліно!</span></h1>
-    <p>Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
+    <p>Щоб грати з подружкою, відкрий меню з трьома крапками й вибери «Грати з друзями». Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
     <ul class="keys desk-only">
       <li><b>W A S D</b>ходити, Shift бігти</li>
       <li><b>Пробіл</b>стрибати, у воді пливти вгору</li>
@@ -276,6 +321,7 @@ body.touch[data-mode="art"] .blockname{bottom:calc(env(safe-area-inset-bottom,0p
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script>
 (() => {
 'use strict';
@@ -920,7 +966,8 @@ function placeHearts() {
       if (!b || b === LEAVES || b === PINKLEAVES || isPlant(b)) { g--; continue; }
       break;
     }
-    if (!ok) continue;
+    // Angelina must fit under whatever hangs above the heart
+    if (!ok || opaqueAt(x, g, z) || opaqueAt(x, g + 1, z) || opaqueAt(x, g + 2, z)) continue;
     const mesh = new THREE.Mesh(heartGeo, heartMat);
     mesh.position.set(x + 0.5, g + 1, z + 0.5);
     mesh.scale.setScalar(0.9);
@@ -1150,6 +1197,10 @@ const WARDROBE = {
     { id: 'bow', name: 'Бантик' }, { id: 'none', name: 'Нічого' }, { id: 'hat', name: 'Капелюшок' },
     { id: 'beanie', name: 'Шапка з помпоном' }, { id: 'bunny', name: 'Вушка зайчика' }, { id: 'cat', name: 'Котячі вушка' }, { id: 'flowers', name: 'Віночок' },
   ] },
+  hairColor: { title: 'Колір волосся', items: [
+    { id: 'black', name: 'Чорне', sw: '#16110f', c: '#16110f' }, { id: 'brown', name: 'Каштанове', sw: '#5a3820', c: '#5a3820' },
+    { id: 'blonde', name: 'Світле', sw: '#e8c46a', c: '#e8c46a' }, { id: 'red', name: 'Руде', sw: '#b5482a', c: '#b5482a' },
+  ] },
   hair: { title: 'Зачіска', items: [
     { id: 'long', name: 'Довге волосся' }, { id: 'pigtails', name: 'Хвостики' }, { id: 'bun', name: 'Гулька' }, { id: 'braid', name: 'Коса' },
   ] },
@@ -1157,21 +1208,27 @@ const WARDROBE = {
     { id: 'none', name: 'Без окулярів' }, { id: 'hearts', name: 'Сердечка', sw: '#ff4f9a' }, { id: 'star', name: 'Зірочки', sw: '#ffd23f' }, { id: 'round', name: 'Круглі', sw: '#2b2140' },
   ] },
 };
-let outfit = { dress: 'pink', shoes: 'white', hat: 'bow', hair: 'long', glasses: 'none' };
+let outfit = { dress: 'pink', shoes: 'white', hat: 'bow', hair: 'long', hairColor: 'black', glasses: 'none' };
 const pick = (cat) => WARDROBE[cat].items.find(i => i.id === outfit[cat]) || WARDROBE[cat].items[0];
 
 const girl = new THREE.Group();
 scene.add(girl);
 let body = null, legs = [], arms = [], eyes = [], crown = null, blaster = null;
-const nameTag = textSprite('Ангеліна', 1.15);
-nameTag.position.y = 2.15;
-girl.add(nameTag);
+let nameTag = null;
+function setNameTag(name) {
+  if (nameTag) girl.remove(nameTag);
+  nameTag = textSprite(name, 1.15);
+  nameTag.position.y = 2.15;
+  girl.add(nameTag);
+}
+setNameTag('Ангеліна');
 
-function buildGirl() {
-  if (body) girl.remove(body);
-  body = new THREE.Group();
-  girl.add(body);
-  const D = pick('dress'), S = pick('shoes'), hat = outfit.hat, hair = outfit.hair, gl = outfit.glasses;
+// builds any girl in any outfit: Angelina herself and friends who join the room
+function buildAvatar(o, d) {
+  const body = new THREE.Group();
+  const pk = cat => WARDROBE[cat].items.find(i => i.id === o[cat]) || WARDROBE[cat].items[0];
+  const D = pk('dress'), S = pk('shoes'), hat = o.hat, hair = o.hair, gl = o.glasses, HAIR = pk('hairColor').c;
+  let legs, arms, eyes, crown, blaster;
   legs = [-0.12, 0.12].map(x => {
     const p = pivot(x, 0.55, 0, body);
     box(0.2, 0.45, 0.22, D.legs, 0, -0.225, 0, p);
@@ -1208,7 +1265,7 @@ function buildGirl() {
   box(0.07, 0.04, 0.02, '#ff9db4', -0.19, 1.28, 0.245, body);
   box(0.07, 0.04, 0.02, '#ff9db4', 0.19, 1.28, 0.245, body);
   box(0.1, 0.03, 0.02, '#c4486a', 0, 1.24, 0.245, body);
-  // black hair, always
+  // hair: black for Angelina unless she picks another colour
   box(0.58, 0.12, 0.54, HAIR, 0, 1.66, 0, body);
   box(0.58, 0.56, 0.1, HAIR, 0, 1.38, -0.25, body);
   box(0.07, 0.4, 0.5, HAIR, -0.285, 1.44, -0.01, body);
@@ -1219,7 +1276,7 @@ function buildGirl() {
   if (hair === 'bun') { box(0.26, 0.24, 0.24, HAIR, 0, 1.8, -0.14, body); box(0.28, 0.05, 0.05, '#ff6fae', 0, 1.7, -0.02, body); }
   if (hair === 'braid') { [[0.14, 1.12], [0.12, 0.96], [0.1, 0.82]].forEach(([w, y]) => box(w, 0.16, w, HAIR, 0, y, -0.29, body)); box(0.12, 0.05, 0.12, '#ff6fae', 0, 0.73, -0.29, body); }
   // headwear; in the kingdom the crown takes its place
-  const inKingdom = dim === D_CASTLE;
+  const inKingdom = d === D_CASTLE;
   crown = new THREE.Group(); body.add(crown);
   box(0.4, 0.08, 0.4, '#f4c23f', 0, 1.77, 0, crown);
   [[-0.16, -0.16], [0.16, -0.16], [-0.16, 0.16], [0.16, 0.16], [0, 0.17], [0, -0.17]].forEach(([x, z]) => box(0.07, 0.1, 0.07, '#f4c23f', x, 1.86, z, crown));
@@ -1249,7 +1306,13 @@ function buildGirl() {
   box(0.1, 0.1, 0.1, '#ffd23f', 0, -0.48, 0.36, blaster);
   box(0.06, 0.2, 0.06, '#ffffff', 0, -0.32, 0.02, blaster);
   box(0.16, 0.16, 0.05, '#9a7bff', 0, -0.2, 0.02, blaster);
-  blaster.visible = dim === D_ARENA;
+  blaster.visible = d === D_ARENA;
+  return { body, legs, arms, eyes, crown, blaster };
+}
+function buildGirl() {
+  if (body) girl.remove(body);
+  ({ body, legs, arms, eyes, crown, blaster } = buildAvatar(outfit, dim));
+  girl.add(body);
 }
 
 // first-person view-model of the blaster
@@ -1275,7 +1338,7 @@ function renderWardrobe() {
       b.className = 'chip' + (outfit[cat] === item.id ? ' on' : '');
       if (item.sw) { const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = item.sw; b.appendChild(sw); }
       b.append(item.name);
-      b.addEventListener('click', () => { outfit[cat] = item.id; buildGirl(); renderWardrobe(); scheduleSave(); sfx.click(); });
+      b.addEventListener('click', () => { outfit[cat] = item.id; buildGirl(); renderWardrobe(); scheduleSave(); sfx.click(); netSend({ t: 'outfit', o: outfit }); });
       chips.appendChild(b);
     });
     sec.append(h, chips);
@@ -1869,7 +1932,7 @@ function pickMob(maxT) {
 let building = false, selected = 0;
 function setBlock(x, y, z, b) {
   world[I(x, y, z)] = b;
-  if (dim <= D_CASTLE) { editsByDim[dim][I(x, y, z)] = b; scheduleSave(); }
+  if (dim <= D_CASTLE) { editsByDim[dim][I(x, y, z)] = b; scheduleSave(); netSend({ t: 'block', d: dim, i: I(x, y, z), b }); }
   rebuildAround(x, z);
 }
 function tapAt(cx, cy, place) {
@@ -2070,7 +2133,16 @@ function startRace() {
   race.cars.forEach(c => scene.remove(c.g));
   race.cars = [];
   const T = TRACK, N = T.N;
-  CAR_SPECS.forEach((sp, k) => {
+  // friends in the race take grid slots in a fixed order; computer cars fill the rest
+  const racers = [...net.players.values()].filter(P => P.d === D_RACE).map(P => P.id).concat(net.myId).sort();
+  const mySlot = racers.indexOf(net.myId);
+  const ai = CAR_SPECS.filter(sp => !sp.player).slice(0, Math.max(1, 4 - racers.length));
+  const me = { ...CAR_SPECS[1], color: (WARDROBE.dress.items.find(i => i.id === outfit.dress) || {}).sw || '#ff4f9a' };
+  const slots = [];
+  let next = racers.length;
+  ai.forEach(sp => slots.push([sp, next++]));
+  slots.push([me, mySlot]);
+  slots.forEach(([sp, k]) => {
     const row = Math.floor(k / 2), lane = k % 2 ? 2.3 : -2.3;
     const i = (N - 6 - row * 14) % N, p = T.pts[i];
     const { g, wheels } = buildCar(sp.color, sp.driver);
@@ -2169,10 +2241,11 @@ function updateRace(dt) {
       else ctl = aiControls(c);
       carStep(c, dt, ctl.throttle, ctl.brake, ctl.steer);
       if (!c.done && c.lap > race.laps) {
-        c.done = true; c.time = race.t; race.finished++; c.place = race.finished;
+        c.done = true; c.time = race.t; race.finished++; c.place = race.finished + (c.player ? remoteRacersAhead(raceProgress(c)).ahead : 0);
         if (c.player) finishRace();
       }
     });
+    pushFromRemoteCars(P);
     for (let a = 0; a < race.cars.length; a++) for (let b = a + 1; b < race.cars.length; b++) {
       const A = race.cars[a], B = race.cars[b], dx = B.x - A.x, dz = B.z - A.z, d = Math.hypot(dx, dz);
       if (d > 0.01 && d < 1.9) { const push = (1.9 - d) / 2; A.x -= dx / d * push; A.z -= dz / d * push; B.x += dx / d * push; B.z += dz / d * push; A.speed *= 0.985; B.speed *= 0.985; }
@@ -2183,8 +2256,9 @@ function updateRace(dt) {
     race.engine.g.gain.value = soundOn && race.state !== 'off' ? 0.012 : 0;
   }
   const score = c => c.done ? 1000 - c.place : raceProgress(c);
-  const place = 1 + race.cars.filter(c => c !== P && score(c) > score(P)).length;
-  setGameHud([`Коло ${clamp(P.lap, 1, race.laps)} / ${race.laps}`, `Місце ${P.done ? P.place : place} / 4`, `Час ${fmtTime(P.done ? P.time : race.t)}`]);
+  const rem = remoteRacersAhead(raceProgress(P));
+  const place = 1 + race.cars.filter(c => c !== P && score(c) > score(P)).length + (P.done ? 0 : rem.ahead);
+  setGameHud([`Коло ${clamp(P.lap, 1, race.laps)} / ${race.laps}`, `Місце ${P.done ? P.place : place} / ${race.cars.length + rem.total}`, `Час ${fmtTime(P.done ? P.time : race.t)}`]);
 }
 function finishRace() {
   const P = race.player;
@@ -2193,9 +2267,9 @@ function finishRace() {
   sfx.win();
   bigText('Фініш!', 1400);
   const titles = ['Перемога! Перше місце!', 'Друге місце!', 'Третє місце!', 'Четверте місце'];
-  setTimeout(() => showResult(titles[P.place - 1],
+  setTimeout(() => showResult(titles[P.place - 1] || `${P.place}-е місце`,
     `Час: ${fmtTime(P.time)}. Найкращий час: ${fmtTime(race.best)}.${P.place === 1 ? ' Ангеліна найшвидша на трасі!' : ' Спробуй ще раз, щоб приїхати першою!'}`,
-    () => startRace()), 1600);
+    () => { startRace(); netSend({ t: 'raceStart' }); }), 1600);
 }
 const raceLook = new THREE.Vector3(), raceCam = new THREE.Vector3();
 function raceCamera(dt) {
@@ -2315,7 +2389,8 @@ function enterArt() {
 function leaveArt() { art.labels.forEach(s => scene.remove(s)); art.labels = []; }
 
 // ---------- candy monster arena ----------
-const arena = { hp: 5, wave: 0, score: 0, best: 0, monsters: [], candies: [], drops: [], queue: [], spawnT: 0, state: 'off', pause: 0, cool: 0, firing: false, fireX: 0, fireY: 0, fireCenter: false };
+const arena = { hp: 5, wave: 0, score: 0, best: 0, monsters: [], candies: [], drops: [], queue: [], spawnT: 0, state: 'off', pause: 0, cool: 0, firing: false, fireX: 0, fireY: 0, fireCenter: false,
+  lead: true, remote: new Map(), midSeq: 0, snapT: 0 };
 const WAVES = [
   { gummy: 5 },
   { gummy: 6, lollipop: 3 },
@@ -2379,6 +2454,7 @@ function enterArena() {
 }
 function clearArena() {
   arena.monsters.forEach(m => scene.remove(m.g)); arena.monsters = [];
+  arena.remote.forEach(r => scene.remove(r.g)); arena.remote.clear();
   arena.candies.forEach(c => scene.remove(c.mesh)); arena.candies = [];
   arena.drops.forEach(d => scene.remove(d.mesh)); arena.drops = [];
 }
@@ -2399,7 +2475,7 @@ function spawnMonster(type) {
   g.add(body);
   def.build(body, arena.monsters.length + arena.wave * 3);
   const a = Math.random() * Math.PI * 2, r = 27;
-  const m = { type, def, g, body, hp: def.hp, flash: 0, hopT: Math.random(), facing: 0,
+  const m = { mid: `${net.myId}:${++arena.midSeq}`, type, def, g, body, hp: def.hp, flash: 0, hopT: Math.random(), facing: 0,
     e: { p: new THREE.Vector3(CX + .5 + Math.cos(a) * r, KH + 1.01, CZ + .5 + Math.sin(a) * r), vel: new THREE.Vector3(), hw: def.hw, h: def.h, onGround: false, blocked: false, jumpV: 5.5, float: true } };
   scene.add(g);
   burst(m.e.p.x - .5, m.e.p.y, m.e.p.z - .5, '#fff', 10, ['#ffffff', '#ff9fd2', '#c9a8ff']);
@@ -2438,7 +2514,7 @@ function aimPoint(cx, cy) {
 }
 function fireAtScreen(cx, cy) { const [x, y, z] = aimPoint(cx, cy); fireCandy(x, y, z); }
 function hurtPlayer(from) {
-  if (hurtT > 0 || arena.state !== 'fight') return;
+  if (hurtT > 0 || arena.state !== 'fight' || arena.hp <= 0) return;
   hurtT = 1.2;
   arena.hp--;
   sfx.hurt();
@@ -2447,26 +2523,42 @@ function hurtPlayer(from) {
   const dx = pl.p.x - from.x, dz = pl.p.z - from.z, d = Math.hypot(dx, dz) || 1;
   pl.vel.x += dx / d * 9; pl.vel.z += dz / d * 9; pl.vel.y = 6;
   updateArenaHud();
-  if (arena.hp <= 0) {
+  if (arena.hp <= 0 && arenaCoop()) {
+    toast('Ой! Зараз повернешся', 1600);
+    setTimeout(() => { if (dim !== D_ARENA) return; arena.hp = 5; const a = GAME_START[D_ARENA]; pl.p.set(a.x + .5, KH + 1.01, a.z + .5); updateArenaHud(); }, 1800);
+  } else if (arena.hp <= 0) {
     arena.state = 'over';
     setTimeout(() => showResult('Ой! Монстрики виграли', `Ангеліна дійшла до хвилі ${arena.wave} і набрала ${arena.score} очок. Спробуєш ще?`, () => enterArena()), 900);
   }
 }
+// with friends in the arena one player runs the monsters and the others see the same ones
+function arenaPeers() { return [...net.players.values()].filter(P => P.d === D_ARENA); }
+function arenaCoop() { return net.role !== 'off' && arenaPeers().length > 0; }
+function arenaLeader() { const ids = arenaPeers().map(P => P.id).concat(net.myId).sort(); return ids[0] === net.myId; }
 function updateArena(dt) {
   if (arena.state === 'off') return;
+  const coop = arenaCoop(), lead = !coop || arenaLeader();
+  if (lead !== arena.lead) {
+    arena.lead = lead;
+    if (lead) {
+      arena.remote.forEach(r => scene.remove(r.g)); arena.remote.clear();
+      if (arena.state !== 'won') { arena.wave = Math.max(0, arena.wave - 1); arena.state = 'pause'; arena.pause = 1.5; arena.queue = []; }
+    } else { arena.monsters.forEach(m => scene.remove(m.g)); arena.monsters = []; arena.queue = []; }
+  }
   arena.cool = Math.max(0, arena.cool - dt);
   hurtT = Math.max(0, hurtT - dt);
   if (arena.firing && playing) {
     if (arena.fireCenter) fireAtScreen(innerWidth / 2, innerHeight / 2);
     else fireAtScreen(arena.fireX, arena.fireY);
   }
-  if (arena.state === 'pause') { arena.pause -= dt; if (arena.pause <= 0) startWave(); }
-  if (arena.state === 'fight') {
+  if (lead && arena.state === 'pause') { arena.pause -= dt; if (arena.pause <= 0) startWave(); }
+  if (lead && arena.state === 'fight') {
     arena.spawnT -= dt;
     if (arena.queue.length && arena.spawnT <= 0 && arena.monsters.length < 9) { spawnMonster(arena.queue.shift()); arena.spawnT = 0.9; }
     if (!arena.queue.length && !arena.monsters.length) {
       if (arena.wave >= WAVES.length) {
         arena.state = 'won';
+        if (coop) netSend({ t: 'arenaWin', sc: arena.score });
         arena.best = Math.max(arena.best, arena.score); scheduleSave();
         sfx.win(); bigText('Перемога!', 1500);
         setTimeout(() => showResult('Перемога! Королівство врятоване', `Ангеліна перемогла всіх цукеркових монстриків і набрала ${arena.score} очок. Рекорд: ${arena.best}.`, () => enterArena()), 1600);
@@ -2474,8 +2566,13 @@ function updateArena(dt) {
     }
   }
   const t = performance.now() / 1000;
+  const goals = [pl.p].concat(coop ? arenaPeers().map(P => ({ x: P.x, y: P.y, z: P.z })) : []);
   arena.monsters.forEach(m => {
-    const e = m.e, dx = pl.p.x - e.p.x, dz = pl.p.z - e.p.z, d = Math.hypot(dx, dz) || 1;
+    const e = m.e;
+    let goal = goals[0], gd = Infinity;
+    goals.forEach(q => { const dd = Math.hypot(q.x - e.p.x, q.z - e.p.z); if (dd < gd) { gd = dd; goal = q; } });
+    const dx = goal.x - e.p.x, dz = goal.z - e.p.z, d = Math.hypot(dx, dz) || 1;
+    const pd = Math.hypot(pl.p.x - e.p.x, pl.p.z - e.p.z);
     const go = arena.state === 'fight' ? 1 : 0;
     m.hopT -= dt;
     const hop = m.def.hop && m.hopT <= 0 && e.onGround;
@@ -2487,8 +2584,9 @@ function updateArena(dt) {
     const squash = e.onGround ? 1 - Math.abs(Math.sin(t * 8 + m.hopT)) * 0.08 : 1.08;
     const pop = 1 + m.flash * 1.5;
     m.body.scale.set(pop / Math.sqrt(squash), squash * pop, pop / Math.sqrt(squash));
-    if (d < m.def.hw + 0.45 && Math.abs(e.p.y - pl.p.y) < 1.5) { hurtPlayer(e.p); e.vel.x -= dx / d * 6; e.vel.z -= dz / d * 6; }
+    if (pd < m.def.hw + 0.45 && Math.abs(e.p.y - pl.p.y) < 1.5) { hurtPlayer(e.p); e.vel.x -= dx / d * 6; e.vel.z -= dz / d * 6; }
   });
+  if (!lead) updateRemoteMonsters(dt, t);
   for (let i = arena.candies.length - 1; i >= 0; i--) {
     const c = arena.candies[i];
     c.life -= dt; c.v.y -= 5 * dt;
@@ -2496,14 +2594,15 @@ function updateArena(dt) {
     c.mesh.rotation.x += dt * 12; c.mesh.rotation.y += dt * 9;
     const p = c.mesh.position;
     let hitM = null;
-    for (const m of arena.monsters) {
-      const r = Math.max(m.def.hw, m.def.h / 2) + 0.18;
-      if (Math.hypot(p.x - m.e.p.x, p.y - (m.e.p.y + m.def.h / 2), p.z - m.e.p.z) < r) { hitM = m; break; }
+    for (const m of lead ? arena.monsters : arena.remote.values()) {
+      const mp = m.e ? m.e.p : m.p, r = Math.max(m.def.hw, m.def.h / 2) + 0.18;
+      if (Math.hypot(p.x - mp.x, p.y - (mp.y + m.def.h / 2), p.z - mp.z) < r) { hitM = m; break; }
     }
     if (hitM) {
-      hitM.hp--; hitM.flash = 0.12;
+      hitM.flash = 0.12;
       sfx.hit();
-      if (hitM.hp <= 0) popMonster(hitM);
+      if (lead) { hitM.hp--; if (hitM.hp <= 0) popMonster(hitM); }
+      else netSend({ t: 'hit', mid: hitM.mid });
     }
     if (hitM || c.life <= 0 || solidAt(Math.floor(p.x), Math.floor(p.y), Math.floor(p.z))) {
       if (!hitM && c.life > 0) burst(p.x - .5, p.y - .5, p.z - .5, '#fff', 3, CANDY_COLORS);
@@ -2519,6 +2618,61 @@ function updateArena(dt) {
       scene.remove(dr.mesh); arena.drops.splice(i, 1);
     }
   }
+  if (lead && coop) {
+    arena.snapT -= dt;
+    if (arena.snapT <= 0) {
+      arena.snapT = 0.1;
+      const r2 = v => Math.round(v * 100) / 100;
+      netSend({ t: 'mon', w: arena.wave, s: arena.state, sc: arena.score,
+        m: arena.monsters.map(m => [m.mid, m.type, r2(m.e.p.x), r2(m.e.p.y), r2(m.e.p.z), r2(m.facing), m.flash > 0 ? 1 : 0]) });
+    }
+  }
+}
+function applyMonSnap(s) {
+  if (dim !== D_ARENA || arena.lead || arena.state === 'off' || !Array.isArray(s.m)) return;
+  arena.wave = clamp(s.w | 0, 0, WAVES.length); arena.score = s.sc | 0;
+  if (arena.state !== 'won' && ['pause', 'fight'].includes(s.s)) arena.state = s.s;
+  const seen = new Set();
+  s.m.slice(0, 20).forEach(([mid, type, x, y, z, f, fl]) => {
+    if (!Object.prototype.hasOwnProperty.call(MONSTERS, type) || ![x, y, z, f].every(Number.isFinite)) return;
+    mid = String(mid).slice(0, 24);
+    seen.add(mid);
+    let r = arena.remote.get(mid);
+    if (!r) {
+      const g = new THREE.Group(), body = new THREE.Group();
+      g.add(body); MONSTERS[type].build(body, arena.remote.size + arena.wave * 3);
+      scene.add(g);
+      r = { mid, type, def: MONSTERS[type], g, body, p: new THREE.Vector3(x, y, z), tx: x, ty: y, tz: z, f, tf: f, flash: 0 };
+      arena.remote.set(mid, r);
+    }
+    r.tx = x; r.ty = y; r.tz = z; r.tf = f;
+    if (fl) r.flash = 0.12;
+  });
+  arena.remote.forEach((r, mid) => {
+    if (seen.has(mid)) return;
+    if (r.p.distanceTo(pl.p) < 60) { sfx.poof(); burst(r.p.x - .5, r.p.y + r.def.h / 2 - .5, r.p.z - .5, '#fff', 14, ['#ff4f9a', '#ffd23f', '#7cc8ff', '#7be0a0', '#b388ff', '#ffffff']); }
+    scene.remove(r.g); arena.remote.delete(mid);
+  });
+  updateArenaHud();
+}
+function updateRemoteMonsters(dt, t) {
+  const k = Math.min(1, dt * 12);
+  arena.remote.forEach(r => {
+    r.p.x += (r.tx - r.p.x) * k; r.p.y += (r.ty - r.p.y) * k; r.p.z += (r.tz - r.p.z) * k;
+    r.f += wrapAngle(r.tf - r.f) * k;
+    r.g.position.copy(r.p); r.g.rotation.y = r.f;
+    r.flash = Math.max(0, r.flash - dt);
+    const squash = 1 - Math.abs(Math.sin(t * 8 + r.tx)) * 0.08, pop = 1 + r.flash * 1.5;
+    r.body.scale.set(pop / Math.sqrt(squash), squash * pop, pop / Math.sqrt(squash));
+    if (Math.hypot(pl.p.x - r.p.x, pl.p.z - r.p.z) < r.def.hw + 0.45 && Math.abs(r.p.y - pl.p.y) < 1.5) hurtPlayer(r.p);
+  });
+}
+function applyHit(mid) {
+  if (dim !== D_ARENA || !arena.lead) return;
+  const m = arena.monsters.find(x => x.mid === mid);
+  if (!m) return;
+  m.hp--; m.flash = 0.12;
+  if (m.hp <= 0) popMonster(m);
 }
 function popMonster(m) {
   const p = m.e.p;
@@ -2644,7 +2798,7 @@ function applyMode() {
   if (mode !== 'explore') compassEl.hidden = true;
 }
 function enterGame(d) {
-  if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); }
+  if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); netSend({ t: 'raceStart' }); }
   if (d === D_ART) enterArt();
   if (d === D_ARENA) enterArena();
 }
@@ -2847,9 +3001,10 @@ shootBtn.addEventListener('pointerdown', e => { e.preventDefault(); if (!playing
 const SAVE = 'angelina-world-v3';
 let editsByDim = [{}, {}], saveT = 0;
 function save() {
+  if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen }));
+      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen, n: net.name }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -2865,6 +3020,7 @@ function load() {
     art.level = s.art || 0; race.best = s.race || 0; arena.best = s.arena || 0;
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
+    if (s.n) net.name = cleanName(s.n);
     if (s.sound === false) soundOn = false;
   } catch (e) {}
 }
@@ -2889,19 +3045,25 @@ function updateHearts(t) {
     if (!h.mesh.visible) return;
     h.mesh.rotation.y = t * 2 + h.phase;
     h.mesh.position.y = h.y + Math.sin(t * 2.5 + h.phase) * 0.15;
-    if (d < 1.2 && Math.abs(h.mesh.position.y - (pl.p.y + 0.8)) < 1.4) {
-      collected.add(h.id); scene.remove(h.mesh); scene.remove(h.beam);
-      burst(h.mesh.position.x - .5, h.mesh.position.y - .5, h.mesh.position.z - .5, '#ff4f9a', 14);
-      updateStats(); scheduleSave();
-      if (collected.size === HEART_NEED) {
-        sfx.win();
-        const P = PORTALS[0];
-        P.open = true; placePortal(P); rebuildAround(P.x, P.z);
-        toast('Ура! 5 сердечок! Посередині світу відкрився портал до замку', 5000);
-      } else if (collected.size < HEART_NEED) { sfx.heart(); toast(`Сердечко! Ще ${HEART_NEED - collected.size}`); }
-      else { sfx.heart(); toast('Ще одне сердечко!'); }
-    }
+    if (d < 1.2 && Math.abs(h.mesh.position.y - (pl.p.y + 0.8)) < 1.4) collectHeart(h, false);
   });
+}
+// a heart counts for everyone in the room, whoever picked it up
+function collectHeart(h, fromNet) {
+  if (!h || collected.has(h.id)) return;
+  collected.add(h.id); scene.remove(h.mesh);
+  if (dim === D_MAIN) burst(h.mesh.position.x - .5, h.mesh.position.y - .5, h.mesh.position.z - .5, '#ff4f9a', 14);
+  updateStats(); scheduleSave();
+  if (!fromNet) netSend({ t: 'heart', h: h.id });
+  if (collected.size === HEART_NEED) {
+    sfx.win();
+    const P = PORTALS[0];
+    P.open = true; placePortal(P);
+    if (dim === D_MAIN) rebuildAround(P.x, P.z);
+    toast('Ура! 5 сердечок! Посередині світу відкрився портал до замку', 5000);
+  } else if (fromNet) toast('Подружка знайшла сердечко!', 1600);
+  else if (collected.size < HEART_NEED) { sfx.heart(); toast(`Сердечко! Ще ${HEART_NEED - collected.size}`); }
+  else { sfx.heart(); toast('Ще одне сердечко!'); }
 }
 function updateCompass() {
   if (dim !== D_MAIN || !playing) { compassEl.hidden = true; return; }
@@ -2935,6 +3097,7 @@ function update(dt, now) {
   } else mobs.forEach(m => { m.g.visible = false; });
   updateHearts(t);
   updatePortals(dt, t);
+  updateNet(dt);
   if (mode === 'arena') updateArena(dt);
   updateParticles(dt);
   clouds.forEach(c => {
@@ -2992,6 +3155,7 @@ function boot() {
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
   portalLock = false;
   buildGirl();
+  setNameTag(net.name);
   spawnMobs();
   spawn();
   pl.facing = yaw;
@@ -3017,6 +3181,356 @@ setTimeout(() => {
   $('playBtn').textContent = 'Грати';
   requestAnimationFrame(frame);
 }, 30);
+
+// ---------- playing together: rooms over PeerJS ----------
+// The host's game is the record of the shared world; guests send what they do and the host passes it on.
+const PEER_PREFIX = 'angelina-world-v1-';
+const PHRASES = ['Привіт!', 'Ходи сюди!', 'Дивись!', 'Ура!', 'Дякую!', 'Давай будувати!', 'Біжимо до порталу!', 'Ти найкраща!'];
+const MAX_GUESTS = 3;
+const net = { role: 'off', peer: null, conns: new Map(), conn: null, myId: 'h', code: '', name: 'Ангеліна', players: new Map(), sendT: 0, nextGuest: 1, joinTimer: 0 };
+const peerOpts = () => window.__PEER_OPTS || { debug: 0 };
+// the Claude preview blocks direct connections between devices, so rooms only work on the game's own site
+const SITE = 'site20-collab.github.io/Anhelina-game';
+const netBlocked = () => typeof Peer === 'undefined' || !('RTCPeerConnection' in window) || /claude/i.test(location.hostname);
+
+function cleanName(s) { return String(s || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 14) || 'Подружка'; }
+function cleanOutfit(o) {
+  const out = {};
+  Object.keys(WARDROBE).forEach(cat => { const v = o && o[cat]; out[cat] = WARDROBE[cat].items.some(i => i.id === v) ? v : WARDROBE[cat].items[0].id; });
+  return out;
+}
+const finite = v => typeof v === 'number' && Number.isFinite(v);
+
+function netSend(msg) {
+  if (net.role === 'host') { msg.id = msg.id || 'h'; net.conns.forEach(c => { if (c.open) c.send(msg); }); }
+  else if (net.role === 'guest' && net.conn && net.conn.open) net.conn.send(msg);
+}
+function relay(msg, fromId) { net.conns.forEach((c, id) => { if (id !== fromId && c.open) c.send(msg); }); }
+
+// ---------- rooms ----------
+function hostRoom() {
+  if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
+  net.name = cleanName($('netName').value); setNameTag(net.name);
+  const code = String(1000 + Math.floor(Math.random() * 9000));
+  netStatus('Створюю кімнату…');
+  let peer;
+  try { peer = new Peer(PEER_PREFIX + code, peerOpts()); } catch (e) { netStatus('Не вдалося створити кімнату. Спробуй ще раз.'); return; }
+  net.peer = peer;
+  peer.on('open', () => {
+    net.role = 'host'; net.myId = 'h'; net.code = code; net.nextGuest = 1;
+    netStatus(''); renderNet(); scheduleSave();
+    toast(`Кімната ${code} готова. Скажи код подружці!`, 3000);
+  });
+  peer.on('connection', conn => {
+    conn.on('open', () => {
+      if (net.conns.size >= MAX_GUESTS) { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 400); return; }
+      const id = 'g' + net.nextGuest++;
+      net.conns.set(id, conn);
+      conn.on('data', m => onHostData(id, m));
+      conn.on('close', () => dropPlayer(id, true));
+    });
+    conn.on('error', () => {});
+  });
+  peer.on('error', e => {
+    if (e.type === 'unavailable-id') { peer.destroy(); hostRoom(); return; }
+    if (net.role === 'host' && (e.type === 'network' || e.type === 'server-error' || e.type === 'socket-error')) return;
+    netStatus(errText(e));
+    if (net.role !== 'host') closePeer();
+  });
+  peer.on('disconnected', () => { if (net.role === 'host') { try { peer.reconnect(); } catch (e) {} } });
+}
+function joinRoom() {
+  const code = $('netCode').value.replace(/\D/g, '').slice(0, 4);
+  if (code.length !== 4) { netStatus('Код кімнати складається з 4 цифр'); return; }
+  if (netBlocked()) { netStatus(`Гра з друзями працює на сайті гри: ${SITE}`); return; }
+  net.name = cleanName($('netName').value); setNameTag(net.name);
+  netStatus('Під\'єднуюсь…');
+  let peer;
+  try { peer = new Peer(undefined, peerOpts()); } catch (e) { netStatus('Не вдалося під\'єднатися. Спробуй ще раз.'); return; }
+  net.peer = peer;
+  clearTimeout(net.joinTimer);
+  net.joinTimer = setTimeout(() => { if (net.role !== 'guest') { netStatus('Не вдалося під\'єднатися. Перевір код і чи відкрита кімната.'); closePeer(); } }, 15000);
+  peer.on('open', () => {
+    const conn = peer.connect(PEER_PREFIX + code, { reliable: true });
+    net.conn = conn;
+    conn.on('open', () => conn.send({ t: 'hello', name: net.name, o: outfit }));
+    conn.on('data', m => applyNet(m));
+    conn.on('close', () => { if (net.role === 'guest') { toast('Кімната закрилася', 2500); leaveRoom(); } });
+    conn.on('error', () => {});
+  });
+  peer.on('error', e => { netStatus(errText(e)); if (net.role !== 'guest') closePeer(); });
+}
+function errText(e) {
+  if (e.type === 'peer-unavailable') return 'Кімнату з таким кодом не знайдено';
+  if (e.type === 'browser-incompatible') return 'Цей браузер не вміє грати разом';
+  return 'Не вдалося з\'єднатися. Перевір інтернет і спробуй ще раз.';
+}
+function closePeer() {
+  clearTimeout(net.joinTimer);
+  try { if (net.peer) net.peer.destroy(); } catch (e) {}
+  net.peer = null; net.conn = null; net.conns.clear();
+}
+function leaveRoom() {
+  const wasGuest = net.role === 'guest';
+  if (net.role !== 'off') netSend({ t: 'leave' });
+  closePeer();
+  net.players.forEach(P => removeAvatar(P));
+  net.players.clear();
+  net.role = 'off'; net.myId = 'h'; net.code = '';
+  renderNet();
+  // a guest goes back to her own world and saved progress
+  if (wasGuest) { leaveGame(dim); boot(); }
+}
+
+// ---------- messages ----------
+function onHostData(id, m) {
+  if (!m || typeof m !== 'object') return;
+  if (m.t === 'hello') {
+    const P = addPlayer(id, cleanName(m.name), cleanOutfit(m.o));
+    const others = [{ id: 'h', name: net.name, o: outfit, ...myState() }].concat([...net.players.values()].filter(q => q.id !== id).map(q => ({ id: q.id, name: q.name, o: q.outfit, d: q.d, x: q.x, y: q.y, z: q.z, f: q.f })));
+    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others });
+    relay({ t: 'join', id, name: P.name, o: P.outfit }, id);
+    toast(`${P.name} приєдналася до гри!`, 2500);
+    renderNet();
+    return;
+  }
+  m.id = id;
+  applyNet(m);
+  relay(m, id);
+}
+function applyNet(m) {
+  if (!m || typeof m !== 'object') return;
+  const P = m.id && net.players.get(m.id);
+  switch (m.t) {
+    case 'welcome': return adoptRoom(m);
+    case 'full': netStatus('Кімната вже повна'); closePeer(); return;
+    case 'join': if (m.id !== net.myId && !net.players.has(m.id)) { addPlayer(m.id, cleanName(m.name), cleanOutfit(m.o)); toast(`${cleanName(m.name)} приєдналася до гри!`, 2500); renderNet(); } return;
+    case 'leave': if (P) { toast(`${P.name} вийшла з гри`, 2000); dropPlayer(m.id, false); } return;
+    case 'st': if (P) setPlayerState(P, m); return;
+    case 'outfit': if (P) { P.outfit = cleanOutfit(m.o); rebuildAvatar(P); } return;
+    case 'say': if (P && Number.isInteger(m.i) && PHRASES[m.i]) { showBubble(P.g, PHRASES[m.i], P); toast(`${P.name}: ${PHRASES[m.i]}`, 1800); } return;
+    case 'block': return applyBlock(m);
+    case 'heart': if (Number.isInteger(m.h) && m.h >= 0 && m.h < hearts.length) collectHeart(hearts[m.h], true); return;
+    // a friend arriving at the track starts a fresh race for everyone there, so the grid matches
+    case 'raceStart': if (P && P.d !== D_RACE) { P.d = D_RACE; rebuildAvatar(P); } if (dim === D_RACE) { startRace(); if (m.id) toast('Подружка на трасі! Новий заїзд', 1600); } return;
+    case 'mon': return applyMonSnap(m);
+    case 'hit': if (typeof m.mid === 'string') applyHit(m.mid); return;
+    case 'arenaWin':
+      if (dim === D_ARENA && !arena.lead && arena.state !== 'won') {
+        arena.state = 'won'; sfx.win(); bigText('Перемога!', 1500);
+        setTimeout(() => showResult('Перемога разом!', `Подружки перемогли всіх цукеркових монстриків і набрали ${m.sc | 0} очок.`, () => enterArena()), 1600);
+      }
+      return;
+  }
+}
+function adoptRoom(m) {
+  clearTimeout(net.joinTimer);
+  net.role = 'guest'; net.myId = String(m.id); net.code = String(m.code || '');
+  leaveGame(dim);
+  // the guest plays in the host's world: same generated land plus everything built there
+  useDim(D_MAIN); generateMain(); placeHearts();
+  useDim(D_CASTLE); generateCastle();
+  editsByDim = [{}, {}];
+  [0, 1].forEach(d => {
+    const ed = (m.e && m.e[d]) || {};
+    Object.keys(ed).forEach(k => {
+      const i = +k, b = ed[k];
+      if (Number.isInteger(i) && i >= 0 && i < SX * SY * SZ && Number.isInteger(b) && (b === 0 || BLOCKS[b])) { worlds[d][i] = b; editsByDim[d][i] = b; }
+    });
+  });
+  collected.clear();
+  (m.h || []).forEach(i => { if (Number.isInteger(i) && hearts[i]) collected.add(i); });
+  hearts.forEach(h => { if (collected.has(h.id)) scene.remove(h.mesh); });
+  PORTALS[0].open = collected.size >= HEART_NEED;
+  PORTALS.forEach(P => { if (P.open) placePortal(P); });
+  spawnMobs();
+  updateStats();
+  (m.players || []).forEach(p => {
+    if (!p || p.id === net.myId) return;
+    const P = addPlayer(String(p.id).slice(0, 4), cleanName(p.name), cleanOutfit(p.o));
+    setPlayerState(P, p, true);
+  });
+  const host = net.players.get('h');
+  const d = host && [D_MAIN, D_CASTLE].includes(host.d) ? host.d : D_MAIN;
+  if (host && host.d === d) teleportTo(d, host.x + 1.2, host.y + 0.5, host.z + 1.2);
+  else teleportTo(D_MAIN, CX + .5, withDim(D_MAIN, () => surfaceY(CX, CZ)) + 0.01, CZ + .5);
+  netStatus(''); renderNet();
+  toast(`Ти в кімнаті ${net.code}! Грайте разом`, 3000);
+}
+function applyBlock(m) {
+  const d = m.d, i = m.i, b = m.b;
+  if ((d !== D_MAIN && d !== D_CASTLE) || !Number.isInteger(i) || i < 0 || i >= SX * SY * SZ || !Number.isInteger(b) || (b !== 0 && !BLOCKS[b])) return;
+  worlds[d][i] = b;
+  editsByDim[d][i] = b;
+  if (net.role === 'host') scheduleSave();
+  if (d === dim) { const x = i % SX, z = Math.floor(i / SX) % SZ; rebuildAround(x, z); }
+}
+
+// ---------- other players ----------
+function addPlayer(id, name, o) {
+  let P = net.players.get(id);
+  if (!P) { P = { id, name, outfit: o, d: -1, x: 0, y: 0, z: 0, f: 0, mv: 0, car: null, g: new THREE.Group(), walk: 0, seen: false }; net.players.set(id, P); scene.add(P.g); }
+  P.name = name; P.outfit = o;
+  rebuildAvatar(P);
+  return P;
+}
+function rebuildAvatar(P) {
+  if (P.parts) P.g.remove(P.parts.body);
+  P.parts = buildAvatar(P.outfit, P.d);
+  P.g.add(P.parts.body);
+  if (P.tag) P.g.remove(P.tag);
+  P.tag = textSprite(P.name, 1.15, 'rgba(106,76,255,.75)');
+  P.tag.position.y = 2.15;
+  P.g.add(P.tag);
+  if (P.carObj) { scene.remove(P.carObj.g); P.carObj = null; }
+}
+function removeAvatar(P) { scene.remove(P.g); if (P.carObj) scene.remove(P.carObj.g); }
+function dropPlayer(id, announce) {
+  const P = net.players.get(id);
+  if (net.role === 'host') { const c = net.conns.get(id); net.conns.delete(id); try { if (c) c.close(); } catch (e) {} if (P) relay({ t: 'leave', id }, id); }
+  if (!P) return;
+  if (announce) toast(`${P.name} вийшла з гри`, 2000);
+  removeAvatar(P);
+  net.players.delete(id);
+  renderNet();
+}
+function setPlayerState(P, m, snap) {
+  if (![m.x, m.y, m.z].every(finite)) return;
+  const d = Number.isInteger(m.d) && m.d >= 0 && m.d < NDIMS ? m.d : P.d;
+  if (d !== P.d) { P.d = d; rebuildAvatar(P); snap = true; }
+  P.x = clamp(m.x, 0, SX); P.y = clamp(m.y, -20, SY + 10); P.z = clamp(m.z, 0, SZ);
+  P.f = finite(m.f) ? m.f : P.f; P.mv = m.mv ? 1 : 0;
+  P.car = Array.isArray(m.car) && m.car.length === 4 && m.car.every(finite) ? m.car : null;
+  if (snap || !P.seen) { P.g.position.set(P.x, P.y, P.z); P.seen = true; }
+}
+function myState() {
+  const car = dim === D_RACE && race.player ? [race.player.x, race.player.z, race.player.h, raceProgress(race.player)] : 0;
+  return { d: dim, x: pl.p.x, y: pl.p.y, z: pl.p.z, f: pl.facing, mv: Math.hypot(pl.vel.x, pl.vel.z) > 0.6 ? 1 : 0, car };
+}
+function updateNet(dt) {
+  for (let i = bubbles.length - 1; i >= 0; i--) { const b = bubbles[i]; b.t -= dt; if (b.t <= 0) { b.parent.remove(b.s); bubbles.splice(i, 1); } }
+  if (net.role === 'off') return;
+  net.sendT -= dt;
+  if (net.sendT <= 0) {
+    net.sendT = 0.1;
+    const s = myState(), r2 = v => Math.round(v * 100) / 100;
+    netSend({ t: 'st', d: s.d, x: r2(s.x), y: r2(s.y), z: r2(s.z), f: r2(s.f), mv: s.mv, car: s.car ? s.car.map(r2) : 0 });
+  }
+  const k = Math.min(1, dt * 10);
+  net.players.forEach(P => {
+    const here = P.d === dim;
+    const racing = here && dim === D_RACE && P.car;
+    P.g.visible = here && !racing;
+    if (P.carObj) P.carObj.g.visible = !!racing;
+    if (racing) {
+      if (!P.carObj) P.carObj = buildCar(pickColor(P), 'angelina');
+      const c = P.carObj;
+      c.g.position.x += (P.car[0] - c.g.position.x) * k;
+      c.g.position.z += (P.car[1] - c.g.position.z) * k;
+      c.g.position.y = KH + 1;
+      c.g.rotation.y += wrapAngle(P.car[2] - c.g.rotation.y) * k;
+      return;
+    }
+    if (!here) return;
+    P.g.position.x += (P.x - P.g.position.x) * k;
+    P.g.position.y += (P.y - P.g.position.y) * k;
+    P.g.position.z += (P.z - P.g.position.z) * k;
+    P.g.rotation.y += wrapAngle(P.f - P.g.rotation.y) * k;
+    P.walk = P.mv ? P.walk + dt * 10 : P.walk * 0.8;
+    const sw = Math.sin(P.walk) * (P.mv ? 0.7 : 0);
+    P.parts.legs[0].rotation.x = sw; P.parts.legs[1].rotation.x = -sw;
+    P.parts.arms[0].rotation.x = -sw * 0.8;
+    P.parts.arms[1].rotation.x = dim === D_ARENA ? -1.45 : sw * 0.8;
+  });
+}
+function pickColor(P) { return (WARDROBE.dress.items.find(i => i.id === P.outfit.dress) || {}).sw || '#ff4f9a'; }
+// remote cars only nudge your own car, never the other way round
+function pushFromRemoteCars(c) {
+  net.players.forEach(P => {
+    if (P.d !== D_RACE || !P.car) return;
+    const dx = c.x - P.car[0], dz = c.z - P.car[1], d = Math.hypot(dx, dz);
+    if (d > 0.01 && d < 1.9) { c.x += dx / d * (1.9 - d); c.z += dz / d * (1.9 - d); c.speed *= 0.97; }
+  });
+}
+function remoteRacersAhead(myProg) {
+  let ahead = 0, total = 0;
+  net.players.forEach(P => { if (P.d === D_RACE && P.car) { total++; if (P.car[3] > myProg) ahead++; } });
+  return { ahead, total };
+}
+
+// ---------- phrases ----------
+const bubbles = [];
+function showBubble(parent, text, P) {
+  bubbles.filter(b => b.parent === parent).forEach(b => { b.t = 0; });
+  const s = textSprite(text, 1.3, 'rgba(255,79,154,.92)');
+  s.position.y = 2.75;
+  parent.add(s);
+  bubbles.push({ s, parent, t: 3.2 });
+  if (!P) sfx.click();
+}
+function say(i) {
+  showBubble(girl, PHRASES[i]);
+  netSend({ t: 'say', i });
+}
+
+// ---------- teleport used when joining a friend ----------
+function teleportTo(d, x, y, z) {
+  dim = d; useDim(d);
+  pl.p.set(x, y, z); pl.vel.set(0, 0, 0);
+  portalLock = true;
+  hearts.forEach(h => { const on = d === D_MAIN && !collected.has(h.id); h.mesh.visible = on; });
+  curBiome = -1;
+  buildGirl();
+  applyMode();
+  resetChunks(); refreshChunks(pl.p.x, pl.p.z, true); buildCount(9);
+  enterGame(d);
+}
+
+// ---------- panel ----------
+const netPanel = $('netPanel');
+function netStatus(text) { $('netStatus').textContent = text; }
+function renderNet() {
+  const on = net.role !== 'off';
+  $('netOff').hidden = on; $('netOn').hidden = !on;
+  document.body.classList.toggle('in-room', on);
+  const roomTag = $('roomTag');
+  roomTag.hidden = !on;
+  roomTag.textContent = on ? `Кімната ${net.code} · гравців: ${net.players.size + 1}` : '';
+  if (!on) return;
+  $('netCodeShow').textContent = net.code;
+  const list = $('netPlayers');
+  list.textContent = '';
+  [{ name: net.name + ' (ти)', host: net.role === 'host' }].concat([...net.players.values()].map(P => ({ name: P.name, host: P.id === 'h' }))).forEach(p => {
+    const li = document.createElement('li');
+    const who = document.createElement('div'); who.className = 'who';
+    const b = document.createElement('b'); b.textContent = p.name;
+    const sp = document.createElement('span'); sp.textContent = p.host ? 'створила кімнату' : 'гостя';
+    who.append(b, sp); li.appendChild(who); list.appendChild(li);
+  });
+}
+function openNet() {
+  $('netName').value = net.name;
+  renderNet();
+  netPanel.hidden = false; playing = false;
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+$('netBtn').addEventListener('click', openNet);
+$('roomTag').addEventListener('click', openNet);
+$('netHost').addEventListener('click', () => { if (net.role === 'off' && !net.peer) hostRoom(); });
+$('netJoin').addEventListener('click', () => { if (net.role === 'off' && !net.peer) joinRoom(); });
+$('netCode').addEventListener('keydown', e => { if (e.key === 'Enter') $('netJoin').click(); });
+$('netClose').addEventListener('click', () => { netPanel.hidden = true; playing = true; netStatus(''); });
+$('netBack').addEventListener('click', () => { netPanel.hidden = true; playing = true; if (net.role === 'off') { closePeer(); netStatus(''); } });
+$('netLeave').addEventListener('click', () => { leaveRoom(); netStatus('Ти вийшла з кімнати'); });
+const phraseMenu = $('phraseMenu');
+PHRASES.forEach((p, i) => {
+  const b = document.createElement('button'); b.className = 'mitem'; b.textContent = p;
+  b.addEventListener('click', () => { say(i); phraseMenu.hidden = true; });
+  phraseMenu.appendChild(b);
+});
+$('phraseBtn').addEventListener('click', e => { e.stopPropagation(); phraseMenu.hidden = !phraseMenu.hidden; setMenu(false); });
+addEventListener('pointerdown', e => { if (!phraseMenu.hidden && !e.target.closest('.tools')) phraseMenu.hidden = true; });
+addEventListener('beforeunload', () => { if (net.role !== 'off') netSend({ t: 'leave' }); });
 
 })();
 </script>

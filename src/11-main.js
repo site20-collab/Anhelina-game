@@ -18,19 +18,25 @@ function updateHearts(t) {
     if (!h.mesh.visible) return;
     h.mesh.rotation.y = t * 2 + h.phase;
     h.mesh.position.y = h.y + Math.sin(t * 2.5 + h.phase) * 0.15;
-    if (d < 1.2 && Math.abs(h.mesh.position.y - (pl.p.y + 0.8)) < 1.4) {
-      collected.add(h.id); scene.remove(h.mesh); scene.remove(h.beam);
-      burst(h.mesh.position.x - .5, h.mesh.position.y - .5, h.mesh.position.z - .5, '#ff4f9a', 14);
-      updateStats(); scheduleSave();
-      if (collected.size === HEART_NEED) {
-        sfx.win();
-        const P = PORTALS[0];
-        P.open = true; placePortal(P); rebuildAround(P.x, P.z);
-        toast('Ура! 5 сердечок! Посередині світу відкрився портал до замку', 5000);
-      } else if (collected.size < HEART_NEED) { sfx.heart(); toast(`Сердечко! Ще ${HEART_NEED - collected.size}`); }
-      else { sfx.heart(); toast('Ще одне сердечко!'); }
-    }
+    if (d < 1.2 && Math.abs(h.mesh.position.y - (pl.p.y + 0.8)) < 1.4) collectHeart(h, false);
   });
+}
+// a heart counts for everyone in the room, whoever picked it up
+function collectHeart(h, fromNet) {
+  if (!h || collected.has(h.id)) return;
+  collected.add(h.id); scene.remove(h.mesh);
+  if (dim === D_MAIN) burst(h.mesh.position.x - .5, h.mesh.position.y - .5, h.mesh.position.z - .5, '#ff4f9a', 14);
+  updateStats(); scheduleSave();
+  if (!fromNet) netSend({ t: 'heart', h: h.id });
+  if (collected.size === HEART_NEED) {
+    sfx.win();
+    const P = PORTALS[0];
+    P.open = true; placePortal(P);
+    if (dim === D_MAIN) rebuildAround(P.x, P.z);
+    toast('Ура! 5 сердечок! Посередині світу відкрився портал до замку', 5000);
+  } else if (fromNet) toast('Подружка знайшла сердечко!', 1600);
+  else if (collected.size < HEART_NEED) { sfx.heart(); toast(`Сердечко! Ще ${HEART_NEED - collected.size}`); }
+  else { sfx.heart(); toast('Ще одне сердечко!'); }
 }
 function updateCompass() {
   if (dim !== D_MAIN || !playing) { compassEl.hidden = true; return; }
@@ -64,6 +70,7 @@ function update(dt, now) {
   } else mobs.forEach(m => { m.g.visible = false; });
   updateHearts(t);
   updatePortals(dt, t);
+  updateNet(dt);
   if (mode === 'arena') updateArena(dt);
   updateParticles(dt);
   clouds.forEach(c => {
@@ -121,6 +128,7 @@ function boot() {
   PORTALS.forEach(P => { if (P.open) placePortal(P); });
   portalLock = false;
   buildGirl();
+  setNameTag(net.name);
   spawnMobs();
   spawn();
   pl.facing = yaw;

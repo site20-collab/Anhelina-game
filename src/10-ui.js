@@ -102,7 +102,7 @@ function applyMode() {
   if (mode !== 'explore') compassEl.hidden = true;
 }
 function enterGame(d) {
-  if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); }
+  if (d === D_RACE) { girl.visible = false; shadow.visible = false; startRace(); netSend({ t: 'raceStart' }); }
   if (d === D_ART) enterArt();
   if (d === D_ARENA) enterArena();
 }
@@ -305,9 +305,10 @@ shootBtn.addEventListener('pointerdown', e => { e.preventDefault(); if (!playing
 const SAVE = 'angelina-world-v3';
 let editsByDim = [{}, {}], saveT = 0;
 function save() {
+  if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen }));
+      art: art.level, race: race.best, arena: arena.best, view, sound: soundOn, inv: invOpen, n: net.name }));
   } catch (e) {}
 }
 function scheduleSave() { clearTimeout(saveT); saveT = setTimeout(save, 400); }
@@ -323,6 +324,7 @@ function load() {
     art.level = s.art || 0; race.best = s.race || 0; arena.best = s.arena || 0;
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
+    if (s.n) net.name = cleanName(s.n);
     if (s.sound === false) soundOn = false;
   } catch (e) {}
 }

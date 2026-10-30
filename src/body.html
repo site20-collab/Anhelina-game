@@ -6,15 +6,19 @@
       <span class="name">Світ Ангеліни</span>
       <span class="stats explore-only"><span class="h" id="hearts">♥ 0 / 5</span><button class="fbtn" id="friends" aria-label="Мої друзі">Друзі: 0</button></span>
       <span class="biome" id="biome">Луки</span>
+      <button class="room-tag" id="roomTag" hidden></button>
     </div>
     <div class="game-hud" id="gameHud" hidden></div>
     <div class="compass" id="compass" hidden><span class="arrow" id="compassArrow">▲</span><span id="compassText"></span></div>
   </div>
   <div class="tools">
+    <button id="phraseBtn" class="tool net-only">Фрази</button>
+    <div class="menu phrases" id="phraseMenu" hidden></div>
     <button id="modeBtn" class="tool break build-tool">Ламаю</button>
     <button id="menuBtn" class="tool dots" aria-label="Меню" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
     <div class="menu" id="menu" hidden>
       <button id="exitBtn" class="mitem exit game-only">До замку</button>
+      <button id="netBtn" class="mitem">Грати з друзями</button>
       <button id="viewBtn" class="mitem">Камера: ззаду</button>
       <button id="wardrobeBtn" class="mitem explore-only">Одяг</button>
       <button id="soundBtn" class="mitem">Звук: увімкнено</button>
@@ -52,6 +56,31 @@
   </div>
 </div>
 
+<div class="overlay" id="netPanel" hidden>
+  <div class="card">
+    <h1>Грати <span>з друзями</span></h1>
+    <div id="netOff">
+      <p>Створи кімнату й скажи подружці код. Або введи код кімнати, яку створила подружка.</p>
+      <label class="field">Твоє ім'я, його побачать подружки<input id="netName" maxlength="14" autocomplete="off"></label>
+      <div class="actions"><button class="play" id="netHost">Створити кімнату</button></div>
+      <div class="join-row">
+        <input id="netCode" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="Код з 4 цифр" autocomplete="off" aria-label="Код кімнати">
+        <button class="ghost" id="netJoin">Приєднатися</button>
+      </div>
+      <button class="ghost back" id="netBack">Назад до гри</button>
+    </div>
+    <div id="netOn" hidden>
+      <p class="code-big">Код кімнати <b id="netCodeShow"></b></p>
+      <ul class="flist" id="netPlayers"></ul>
+      <div class="actions">
+        <button class="play" id="netClose">Грати</button>
+        <button class="ghost warn" id="netLeave">Вийти з кімнати</button>
+      </div>
+    </div>
+    <p class="net-status" id="netStatus" role="status"></p>
+  </div>
+</div>
+
 <div class="overlay" id="result" hidden>
   <div class="card">
     <h1 id="resTitle"></h1>
@@ -66,7 +95,7 @@
 <div class="overlay" id="overlay">
   <div class="card">
     <h1>Привіт, <span>Ангеліно!</span></h1>
-    <p>Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
+    <p>Щоб грати з подружкою, відкрий меню з трьома крапками й вибери «Грати з друзями». Твій світ став ще більшим. Знайди 5 сердечок: над кожним світиться рожевий промінь, а стрілка вгорі показує, куди йти. Тоді відкриється портал до твого замку, а біля замку чекають три ігри: гонки, картинки з блоків і цукеркова битва.</p>
     <ul class="keys desk-only">
       <li><b>W A S D</b>ходити, Shift бігти</li>
       <li><b>Пробіл</b>стрибати, у воді пливти вгору</li>
