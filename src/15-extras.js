@@ -167,9 +167,9 @@ function renderTv() {
   const mk = (label, id) => {
     const b = document.createElement('button'); b.className = 'chip' + ((tvVideo.id || 'ours') === id ? ' on' : ''); b.textContent = label;
     b.addEventListener('click', () => {
-      if (id === 'ours') { stopTvVideo(); renderTv(); return; }
+      if (id === 'ours') { stopTvVideo(); shareTv(''); renderTv(); return; }
       // a YouTube cartoon goes onto the TV in the room, so Angelina can walk around and watch
-      closeTv(); startTvVideo(id);
+      closeTv(); shareTv(id); startTvVideo(id);
       toast('Мультик іде на телевізорі. Можна ходити кімнатою й дивитися', 3000);
     });
     ch.appendChild(b);
@@ -196,7 +196,7 @@ $('ytAdd').addEventListener('click', () => {
   ytList = ytList.slice(-20);
   $('ytLink').value = '';
   scheduleSave();
-  closeTv(); startTvVideo(m[1]);
+  closeTv(); shareTv(m[1]); startTvVideo(m[1]);
   toast('Мультик іде на телевізорі. Можна ходити кімнатою й дивитися', 3000);
 });
 
@@ -247,6 +247,10 @@ addEventListener('keydown', e => { if (e.code === 'KeyF' && !e.repeat && !actBtn
 
 // ---------- a YouTube cartoon playing on the TV in the room ----------
 const tvVideo = { id: '', obj: null, frame: null, paused: false, volT: 0, vol: -1 };
+// what the castle TV shows for everyone in the room, and when it started (local clock)
+const tvShared = { id: '', startedAt: 0 };
+const tvElapsed = () => Math.max(0, (performance.now() - tvShared.startedAt) / 1000);
+function shareTv(id) { tvShared.id = id; tvShared.startedAt = performance.now(); netSend({ t: 'tv', tv: id, el: 0 }); }
 function ensureCss() {
   if (cssRenderer || !THREE.CSS3DRenderer) return;
   cssRenderer = new THREE.CSS3DRenderer();
@@ -257,14 +261,14 @@ function ensureCss() {
 function ytCmd(func, args = []) {
   try { if (tvVideo.frame && tvVideo.frame.contentWindow) tvVideo.frame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*'); } catch (e) {}
 }
-function startTvVideo(id) {
+function startTvVideo(id, from = 0) {
   ensureCss();
   if (!cssRenderer) { toast('Не вдалося ввімкнути відео на телевізорі', 2000); return; }
   stopTvVideo();
   const wrap = document.createElement('div');
   wrap.style.cssText = 'width:960px;height:544px;background:#000';
   const f = document.createElement('iframe');
-  f.src = window.__TV_SRC || `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3`;
+  f.src = window.__TV_SRC || `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3&start=${Math.floor(from)}`;
   f.allow = 'autoplay; encrypted-media';
   f.title = 'Мультик на телевізорі';
   f.style.cssText = 'width:100%;height:100%;border:0';
@@ -285,6 +289,8 @@ function stopTvVideo() {
   $('tvBar').hidden = true;
 }
 function updateTvVideo(dt) {
+  // walking into the castle picks up whatever the room is watching
+  if (dim === D_CASTLE && tvShared.id && tvVideo.id !== tvShared.id && ytAllowed()) startTvVideo(tvShared.id, tvElapsed());
   if (!tvVideo.id) return;
   if (dim !== D_CASTLE) { stopTvVideo(); return; }
   const d = Math.hypot(pl.p.x - (TV.x + .5), pl.p.z - TV.z);
@@ -307,4 +313,10 @@ $('tvPause').addEventListener('click', () => {
   ytCmd(tvVideo.paused ? 'pauseVideo' : 'playVideo');
   $('tvPause').textContent = tvVideo.paused ? 'Грати' : 'Пауза';
 });
-$('tvStop').addEventListener('click', () => { stopTvVideo(); toast('Телевізор показує наші мультики', 1500); });
+$('tvStop').addEventListener('click', () => { stopTvVideo(); shareTv(''); toast('Телевізор показує наші мультики', 1500); });
+function applyTvNet(m, P) {
+  const id = typeof m.tv === 'string' && /^[\w-]{11}$/.test(m.tv) ? m.tv : '';
+  tvShared.id = id; tvShared.startedAt = performance.now() - clamp(Number(m.el) || 0, 0, 86400) * 1000;
+  if (!id) { if (tvVideo.id) { stopTvVideo(); if (P) toast(`${P.name} вимкнула мультик`, 1600); } return; }
+  if (dim === D_CASTLE && ytAllowed()) { startTvVideo(id, tvElapsed()); if (P) toast(`${P.name} увімкнула мультик на телевізорі`, 2200); }
+}

@@ -221,17 +221,16 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('pointerdown', e => {
   if (!playing) return;
   if (e.pointerType === 'touch') document.body.classList.add('touch');
+  // a new first finger means any finger we still remember has long gone
+  if (e.isPrimary) { touches.clear(); pinch = 0; drag = null; }
   if (locked()) {
     if (dim === D_ARENA) { arena.firing = true; arena.fireCenter = true; }
     else if (dim !== D_RACE) tapAt(innerWidth / 2, innerHeight / 2, e.button === 2 ? !building : building);
     return;
   }
-  // pointer lock is a bonus: when the page may not lock, dragging still turns the view
-  if (view === 'fp' && e.pointerType === 'mouse' && dim !== D_RACE && canvas.requestPointerLock) {
-    try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (err) {}
-  }
   try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
-  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  // only fingers take part in pinching; a mouse never counts as a second finger
+  if (e.pointerType === 'touch') touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); drag = null; return; }
   drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, moved: false, btn: e.button, type: e.pointerType };
   if (dim === D_ARENA && e.pointerType === 'mouse' && e.button === 0) { arena.firing = true; arena.fireCenter = false; arena.fireX = e.clientX; arena.fireY = e.clientY; }
@@ -264,6 +263,7 @@ canvas.addEventListener('pointermove', e => {
   drag.x = e.clientX; drag.y = e.clientY;
 });
 function endDrag(e) {
+  if (!touches.has(e.pointerId) && !(drag && drag.id === e.pointerId) && e.pointerType !== 'mouse') return;
   touches.delete(e.pointerId);
   if (touches.size < 2) pinch = 0;
   if (e.pointerType === 'mouse' && !arena.fireCenter) arena.firing = false;
@@ -276,8 +276,18 @@ function endDrag(e) {
   }
   drag = null;
 }
-canvas.addEventListener('pointerup', endDrag);
-canvas.addEventListener('pointercancel', endDrag);
+// listen on the whole window: a finger lifted over a button still ends the drag
+addEventListener('pointerup', endDrag);
+addEventListener('pointercancel', endDrag);
+canvas.addEventListener('lostpointercapture', e => { if (e.pointerType === 'touch') endDrag(e); });
+// Esc always gets you back to the game: menus and panels close
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  setMenu(false); $('phraseMenu').hidden = true;
+  ['friendsPanel', 'netPanel', 'signCard', 'installPanel'].forEach(id => { if (!$(id).hidden) { $(id).hidden = true; playing = true; } });
+  if (!$('tvPanel').hidden) closeTv();
+  if (wardrobeOpen) closeWardrobe();
+});
 canvas.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') mouse = null; });
 canvas.addEventListener('wheel', e => { e.preventDefault(); if (view === 'tp') dist = clamp(dist * (e.deltaY > 0 ? 1.1 : 0.9), 2.5, 14); }, { passive: false });
 
@@ -293,6 +303,7 @@ function joyMove(e) {
   joy.x = dx / max; joy.y = -dy / max;
 }
 joyZone.addEventListener('pointerdown', e => {
+  if (e.isPrimary && joy.id !== null) joyEnd({ pointerId: joy.id });
   if (!playing || joy.id !== null) return;
   joy.id = e.pointerId;
   try { joyZone.setPointerCapture(e.pointerId); } catch (err) {}
@@ -309,8 +320,8 @@ const joyEnd = e => {
   joy.id = null; joy.x = joy.y = 0; knob.style.transform = '';
   joyEl.classList.remove('floating'); joyEl.style.left = ''; joyEl.style.top = '';
 };
-joyZone.addEventListener('pointerup', joyEnd);
-joyZone.addEventListener('pointercancel', joyEnd);
+addEventListener('pointerup', e => joyEnd(e));
+addEventListener('pointercancel', e => joyEnd(e));
 const jumpBtn = $('jumpBtn');
 jumpBtn.addEventListener('pointerdown', e => { e.preventDefault(); jumpBuf = 0.15; wantJump = true; });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => jumpBtn.addEventListener(t, () => { wantJump = false; }));

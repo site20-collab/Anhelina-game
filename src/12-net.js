@@ -104,7 +104,7 @@ function onHostData(id, m) {
   if (m.t === 'hello') {
     const P = addPlayer(id, cleanName(m.name), cleanOutfit(m.o));
     const others = [{ id: 'h', name: net.name, o: outfit, ...myState() }].concat([...net.players.values()].filter(q => q.id !== id).map(q => ({ id: q.id, name: q.name, o: q.outfit, d: q.d, x: q.x, y: q.y, z: q.z, f: q.f })));
-    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others, fu: playerFurniture(), tod: sky.t, night: sky.night });
+    net.conns.get(id).send({ t: 'welcome', id, code: net.code, e: [editsByDim[0], editsByDim[1]], h: [...collected], players: others, fu: playerFurniture(), tod: sky.t, night: sky.night, tv: tvShared.id, tvel: tvElapsed() });
     net.petsKey = '';
     relay({ t: 'join', id, name: P.name, o: P.outfit }, id);
     toast(`${P.name} приєдналася до гри!`, 2500);
@@ -117,7 +117,7 @@ function onHostData(id, m) {
   applyNet(m);
   relay(m, id);
 }
-const RELAYED = new Set(['sleep', 'st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
+const RELAYED = new Set(['tv', 'sleep', 'st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
 function kickPlayer(id) {
   const P = net.players.get(id), c = net.conns.get(id);
   if (net.role !== 'host' || !P) return;
@@ -140,6 +140,7 @@ function applyNet(m) {
       }
       return;
     case 'pets': if (P) setPlayerPets(P, m.l); return;
+    case 'tv': applyTvNet(m, P); return;
     case 'sleep': if (net.role === 'host') sky.t = MORNING; if (P) toast(`${P.name} поспала, настав ранок`, 2000); return;
     case 'art': case 'artLvl': case 'artHi': case 'artState': return applyArtNet(m);
     case 'join': if (m.id !== net.myId && !net.players.has(m.id)) { addPlayer(m.id, cleanName(m.name), cleanOutfit(m.o)); toast(`${cleanName(m.name)} приєдналася до гри!`, 2500); renderNet(); } return;
@@ -185,6 +186,7 @@ function adoptRoom(m) {
   settleFurniture();
   if (typeof m.tod === 'number' && Number.isFinite(m.tod)) sky.t = ((m.tod % 1) + 1) % 1;
   if (typeof m.night === 'boolean') sky.night = m.night;
+  if (typeof m.tv === 'string' && /^[\w-]{11}$/.test(m.tv)) { tvShared.id = m.tv; tvShared.startedAt = performance.now() - clamp(Number(m.tvel) || 0, 0, 86400) * 1000; }
   spawnMobs();
   updateStats();
   (m.players || []).forEach(p => {
