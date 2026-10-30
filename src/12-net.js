@@ -117,7 +117,7 @@ function onHostData(id, m) {
   applyNet(m);
   relay(m, id);
 }
-const RELAYED = new Set(['st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
+const RELAYED = new Set(['sleep', 'st', 'outfit', 'say', 'block', 'heart', 'raceStart', 'mon', 'hit', 'arenaWin', 'furn', 'pets', 'art', 'artLvl', 'artHi', 'artState', 'leave']);
 function kickPlayer(id) {
   const P = net.players.get(id), c = net.conns.get(id);
   if (net.role !== 'host' || !P) return;
@@ -140,6 +140,7 @@ function applyNet(m) {
       }
       return;
     case 'pets': if (P) setPlayerPets(P, m.l); return;
+    case 'sleep': if (net.role === 'host') sky.t = MORNING; if (P) toast(`${P.name} поспала, настав ранок`, 2000); return;
     case 'art': case 'artLvl': case 'artHi': case 'artState': return applyArtNet(m);
     case 'join': if (m.id !== net.myId && !net.players.has(m.id)) { addPlayer(m.id, cleanName(m.name), cleanOutfit(m.o)); toast(`${cleanName(m.name)} приєдналася до гри!`, 2500); renderNet(); } return;
     case 'leave': if (P) { toast(`${P.name} вийшла з гри`, 2000); dropPlayer(m.id, false); } return;

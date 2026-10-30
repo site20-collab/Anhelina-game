@@ -247,7 +247,9 @@ function generateCastle() {
   addGenFurniture(D_CASTLE, kx0 + 3, KH + 1, kz0 + 3, 'bed', 0); addGenFurniture(D_CASTLE, kx0 + 5, KH + 1, kz0 + 3, 'bed', 0);
   addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, kz1 - 3, 'wardrobe', 1); addGenFurniture(D_CASTLE, kx0 + 6, KH + 1, kz1 - 2, 'lamp', 0);
   addGenFurniture(D_CASTLE, kx0 + 4, KH + 1, CZ - 6, 'toybox', 1); addGenFurniture(D_CASTLE, kx0 + 2, KH + 1, CZ - 10, 'shelf', 1);
-  for (let z = CZ - 12; z <= CZ; z += 3) { addGenFurniture(D_CASTLE, kx1 - 4, KH + 1, z, 'table', 0); addGenFurniture(D_CASTLE, kx1 - 5, KH + 1, z, 'chair', 1); addGenFurniture(D_CASTLE, kx1 - 3, KH + 1, z, 'chair', 3); }
+  // the cinema corner of the east room: sofas facing the big TV on the north wall
+  for (let x = kx1 - 6; x <= kx1 - 2; x += 2) addGenFurniture(D_CASTLE, x, KH + 1, CZ - 13, 'sofa', 2);
+  for (let z = CZ - 9; z <= CZ; z += 3) { addGenFurniture(D_CASTLE, kx1 - 4, KH + 1, z, 'table', 0); addGenFurniture(D_CASTLE, kx1 - 5, KH + 1, z, 'chair', 1); addGenFurniture(D_CASTLE, kx1 - 3, KH + 1, z, 'chair', 3); }
   addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz0 + 2, 'pot', 0); addGenFurniture(D_CASTLE, kx1 - 2, KH + 1, kz1 - 2, 'pot', 0);
   // path from the bridge to the row of game portals
   fillBox(CX - 1, KH, CZ + 42, CX + 1, KH, CZ + 70, CASTLE);

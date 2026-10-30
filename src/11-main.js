@@ -106,6 +106,7 @@ function update(dt, now) {
   updateFauna(dt, t);
   updateFurniture();
   updateLabels();
+  updateExtras(dt, t);
   let hit = null;
   if (playing && (mode === 'explore' || mode === 'art') && !drag) {
     if (locked()) { aim(innerWidth / 2, innerHeight / 2); hit = pickBlock(); }

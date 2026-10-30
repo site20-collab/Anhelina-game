@@ -18,8 +18,10 @@ const FURNITURE = {
   tv: { name: 'Телевізор', h: 1, parts: [[0.86, 0.34, 0.5, '#c79856', 0, 0.17, 0], [0.92, 0.56, 0.1, '#2b2140', 0, 0.66, -0.1], [0.8, 0.44, 0.02, '#7cc8ff', 0, 0.66, -0.04, 1], [0.3, 0.2, 0.02, '#ff9fd2', -0.12, 0.62, -0.03, 1]] },
   toybox: { name: 'Скриня з іграшками', h: 1, parts: [[0.8, 0.5, 0.6, '#ffd23f', 0, 0.25, 0], [0.84, 0.08, 0.64, '#ff8a1f', 0, 0.54, 0], [0.26, 0.26, 0.24, '#b08060', -0.15, 0.71, 0], [0.08, 0.08, 0.06, '#b08060', -0.25, 0.86, 0],
     [0.08, 0.08, 0.06, '#b08060', -0.05, 0.86, 0], [0.18, 0.18, 0.18, '#3d7be0', 0.2, 0.67, 0.05]] },
+  // the sign by Angelina's house; it is never offered in the furniture bar
+  sign: { name: 'Табличка', h: 1, parts: [[0.14, 1.3, 0.14, '#8c6534', 0, 0.65, -0.05], [1.3, 0.8, 0.1, '#c79856', 0, 1.25, 0.04], [1.36, 0.06, 0.14, '#8c6534', 0, 1.67, 0.04]] },
 };
-const HOTBAR_FURN = Object.keys(FURNITURE).map(k => 'f:' + k);
+const HOTBAR_FURN = Object.keys(FURNITURE).filter(k => k !== 'sign').map(k => 'f:' + k);
 const glowCache = {};
 const MB = c => glowCache[c] || (glowCache[c] = new THREE.MeshBasicMaterial({ color: c }));
 // per world: base cell -> piece, and every occupied cell -> its base cell
@@ -39,6 +41,7 @@ function furnModel(rec) {
   if (rec.g) return;
   const g = new THREE.Group();
   FURNITURE[rec.type].parts.forEach(([w, h, dd, c, x, y, z, glow]) => box(w, h, dd, c, x, y, z, g, glow ? MB(c) : undefined));
+  if (rec.type === 'sign') { const face = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.7), new THREE.MeshLambertMaterial({ map: signTexture() })); face.position.set(0, 1.25, 0.095); g.add(face); }
   g.position.set(rec.x + .5, rec.y, rec.z + .5);
   g.rotation.y = rec.rot * Math.PI / 2;
   g.visible = false;
@@ -95,6 +98,7 @@ function placeFurnitureByPlayer(hit, type) {
 function breakFurniture(d, cell, fromNet) {
   const base = furnCell[d].get(cell);
   if (base === undefined) { worlds[d][cell] = 0; return; }
+  if (furn[d].get(base).type === 'sign') { if (!fromNet) toast('Цю табличку не можна зламати. Підійди й прочитай її!', 2200); return; }
   const rec = removeFurnitureRec(d, base);
   if (!rec) return;
   if (d === dim) { burst(rec.x, rec.y, rec.z, '#c79856', 10, FURNITURE[rec.type].parts.map(p => p[3])); rebuildAround(rec.x, rec.z); }
@@ -141,6 +145,8 @@ function buildHouse() {
   addGenFurniture(D_MAIN, x0 + 1, h + 1, z1 - 1, 'pot', 0);
   addGenFurniture(D_MAIN, x0 + 4, h + 1, z1 - 1, 'sofa', 2);
   addGenFurniture(D_MAIN, x1 - 4, h + 1, z0 + 1, 'toybox', 0);
+  fillBox(x0 - 3, h + 1, CZ - 1, x0 - 3, h + 2, CZ - 1, 0);
+  addGenFurniture(D_MAIN, x0 - 3, h + 1, CZ - 1, 'sign', 3);
   HOUSE.h = h;
 }
 

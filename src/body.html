@@ -38,6 +38,29 @@
 <button class="shoot" id="shootBtn">Стріляти</button>
 <div class="toast" id="toast"></div>
 <div class="fade" id="fade"></div>
+<button class="act" id="actBtn" hidden></button>
+
+<div class="overlay" id="signCard" hidden>
+  <div class="card sign-card">
+    <p class="sign-top">Табличка біля будиночка</p>
+    <h1>Гра створена для найкращої сестри <span>Ангеліни!</span></h1>
+    <div class="actions"><button class="play" id="signClose">Дякую!</button></div>
+  </div>
+</div>
+
+<div class="overlay tv-overlay" id="tvPanel" hidden>
+  <div class="tv-box">
+    <div class="tv-screen" id="tvScreen"></div>
+    <div class="tv-controls">
+      <div class="chips" id="tvChannels"></div>
+      <div class="tv-parent" id="tvParent">
+        <p>Для дорослих: встав посилання на мультик з YouTube, і він з'явиться на телевізорі.</p>
+        <div class="join-row"><input id="ytLink" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" aria-label="Посилання YouTube"><button class="ghost" id="ytAdd">Додати</button></div>
+      </div>
+      <button class="play" id="tvClose">Вимкнути телевізор</button>
+    </div>
+  </div>
+</div>
 
 <div class="sheet" id="wardrobe" hidden>
   <h2>Гардероб</h2>

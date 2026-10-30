@@ -325,7 +325,7 @@ function save() {
   if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, view, sound: soundOn, inv: invOpen, n: net.name,
+      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, view, sound: soundOn, inv: invOpen, n: net.name, yt: ytList,
       night: sky.night, tod: sky.t, fu: playerFurniture() }));
   } catch (e) {}
 }
@@ -343,6 +343,7 @@ function load() {
     if (s.view === 'fp') view = 'fp';
     if (s.inv === false) invOpen = false;
     if (s.n) net.name = cleanName(s.n);
+    if (Array.isArray(s.yt)) ytList = s.yt.filter(v => v && /^[\w-]{11}$/.test(v.id)).slice(0, 20).map(v => ({ id: v.id, name: String(v.name || 'Мультик').slice(0, 40) }));
     hide.best = s.hide || 0; jump.best = s.jump || 0;
     if (s.night === false) sky.night = false;
     if (typeof s.tod === 'number') sky.t = s.tod % 1;
