@@ -3687,7 +3687,7 @@ shootBtn.addEventListener('pointerdown', e => { e.preventDefault(); if (!playing
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => shootBtn.addEventListener(t, () => { arena.firing = false; }));
 
 // ---------- save ----------
-const SAVE = 'angelina-world-v3';
+const SAVE = 'angelina-world-v4';
 let editsByDim = [{}, {}], saveT = 0;
 function save() {
   if (net.role === 'guest') return;
