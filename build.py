@@ -22,6 +22,7 @@ APP = '''<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Ангеліна">
 '''
 THREE = ('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n'
+         '<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>\n'
          '<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>\n')
 
 

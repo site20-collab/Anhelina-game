@@ -14,7 +14,8 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);color:var(--ink);font-family:var(--body);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+#game{position:fixed;inset:0;z-index:1;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.css3d{position:fixed!important;inset:0;z-index:0;pointer-events:none}
 button{font:inherit;color:inherit}
 button:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 
@@ -208,3 +209,7 @@ body.in-room .net-only{display:inline-flex!important}
 .tv-controls{display:grid;gap:10px;background:#fff;border-radius:18px;padding:14px}
 .tv-parent p{margin:0 0 6px;font-size:13px;opacity:.75}
 @media (max-height:520px){.tv-screen{max-height:48vh}.act{bottom:calc(env(safe-area-inset-bottom,0px) + 56px);padding:8px 14px;font-size:15px}}
+.tv-bar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 12px);z-index:6;display:flex;align-items:center;gap:6px;
+  background:var(--panel);border-radius:14px;padding:6px 8px 6px 12px;font-weight:800;font-size:13px;box-shadow:0 3px 0 var(--shade)}
+.tv-bar button{border:0;border-radius:10px;padding:6px 10px;min-height:34px;font-weight:800;background:var(--violet);color:#fff;cursor:pointer}
+@media (max-width:640px){.tv-bar{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 140px)}.tv-bar span{display:none}}

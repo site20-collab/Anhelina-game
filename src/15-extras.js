@@ -47,13 +47,18 @@ const cartoon = { c: document.createElement('canvas'), t: 0, acc: 0, scene: 0 };
 cartoon.c.width = 320; cartoon.c.height = 180;
 const cartoonTex = new THREE.CanvasTexture(cartoon.c);
 cartoonTex.magFilter = THREE.NearestFilter;
+const cartoonMat = new THREE.MeshBasicMaterial({ map: cartoonTex });
+// a hole in the picture: the YouTube player sits behind the canvas and shows through here,
+// so walls and furniture in front of the TV still cover it
+const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, blending: THREE.NoBlending, fog: false });
+let tvScreenMesh = null;
 const tvGroup = (() => {
   const g = new THREE.Group();
   box(TV.w + 0.5, TV.h + 0.5, 0.3, '#2b2140', 0, TV.h / 2, 0, g);
   box(0.6, 0.18, 0.18, '#ff4f9a', -TV.w / 2 + 0.2, TV.h + 0.32, 0.05, g);
-  const screen = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), new THREE.MeshBasicMaterial({ map: cartoonTex }));
-  screen.position.set(0, TV.h / 2, 0.16);
-  g.add(screen);
+  tvScreenMesh = new THREE.Mesh(new THREE.PlaneGeometry(TV.w, TV.h), cartoonMat);
+  tvScreenMesh.position.set(0, TV.h / 2, 0.16);
+  g.add(tvScreenMesh);
   g.position.set(TV.x + .5, TV.y, TV.z);
   g.visible = false;
   scene.add(g);
@@ -157,18 +162,16 @@ let tvMode = 'ours';
 function renderTv() {
   const scr = $('tvScreen'), ch = $('tvChannels');
   scr.textContent = '';
-  if (tvMode === 'ours') scr.appendChild(cartoon.c);
-  else {
-    const f = document.createElement('iframe');
-    f.src = `https://www.youtube-nocookie.com/embed/${tvMode}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
-    f.allow = 'autoplay; encrypted-media; picture-in-picture';
-    f.title = 'Мультик';
-    scr.appendChild(f);
-  }
+  scr.appendChild(cartoon.c);
   ch.textContent = '';
   const mk = (label, id) => {
-    const b = document.createElement('button'); b.className = 'chip' + (tvMode === id ? ' on' : ''); b.textContent = label;
-    b.addEventListener('click', () => { tvMode = id; renderTv(); });
+    const b = document.createElement('button'); b.className = 'chip' + ((tvVideo.id || 'ours') === id ? ' on' : ''); b.textContent = label;
+    b.addEventListener('click', () => {
+      if (id === 'ours') { stopTvVideo(); renderTv(); return; }
+      // a YouTube cartoon goes onto the TV in the room, so Angelina can walk around and watch
+      closeTv(); startTvVideo(id);
+      toast('Мультик іде на телевізорі. Можна ходити кімнатою й дивитися', 3000);
+    });
     ch.appendChild(b);
   };
   mk('Наші мультики', 'ours');
@@ -193,8 +196,8 @@ $('ytAdd').addEventListener('click', () => {
   ytList = ytList.slice(-20);
   $('ytLink').value = '';
   scheduleSave();
-  tvMode = m[1];
-  renderTv();
+  closeTv(); startTvVideo(m[1]);
+  toast('Мультик іде на телевізорі. Можна ходити кімнатою й дивитися', 3000);
 });
 
 // ---------- the action button for whatever is nearby ----------
@@ -220,6 +223,7 @@ function nearbyAction() {
 let actT = 0;
 function updateExtras(dt) {
   tvGroup.visible = dim === D_CASTLE;
+  updateTvVideo(dt);
   const near = dim === D_CASTLE && Math.hypot(pl.p.x - TV.x, pl.p.z - TV.z) < 40;
   if (near || !$('tvPanel').hidden) { cartoon.acc += dt; if (cartoon.acc > 1 / 12) { drawCartoon(cartoon.acc); cartoon.acc = 0; } }
   actT -= dt;
@@ -240,3 +244,67 @@ function doAction() {
 }
 actBtn.addEventListener('click', doAction);
 addEventListener('keydown', e => { if (e.code === 'KeyF' && !e.repeat && !actBtn.hidden) doAction(); });
+
+// ---------- a YouTube cartoon playing on the TV in the room ----------
+const tvVideo = { id: '', obj: null, frame: null, paused: false, volT: 0, vol: -1 };
+function ensureCss() {
+  if (cssRenderer || !THREE.CSS3DRenderer) return;
+  cssRenderer = new THREE.CSS3DRenderer();
+  cssRenderer.domElement.className = 'css3d';
+  cssRenderer.setSize(innerWidth, innerHeight);
+  document.body.insertBefore(cssRenderer.domElement, canvas);
+}
+function ytCmd(func, args = []) {
+  try { if (tvVideo.frame && tvVideo.frame.contentWindow) tvVideo.frame.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args }), '*'); } catch (e) {}
+}
+function startTvVideo(id) {
+  ensureCss();
+  if (!cssRenderer) { toast('Не вдалося ввімкнути відео на телевізорі', 2000); return; }
+  stopTvVideo();
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'width:960px;height:544px;background:#000';
+  const f = document.createElement('iframe');
+  f.src = window.__TV_SRC || `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3`;
+  f.allow = 'autoplay; encrypted-media';
+  f.title = 'Мультик на телевізорі';
+  f.style.cssText = 'width:100%;height:100%;border:0';
+  wrap.appendChild(f);
+  const obj = new THREE.CSS3DObject(wrap);
+  obj.position.set(TV.x + .5, TV.y + TV.h / 2, TV.z + 0.17);
+  obj.scale.setScalar(TV.w / 960);
+  cssScene.add(obj);
+  tvScreenMesh.material = holeMat;
+  Object.assign(tvVideo, { id, obj, frame: f, paused: false, vol: -1 });
+  $('tvBar').hidden = false;
+  $('tvPause').textContent = 'Пауза';
+}
+function stopTvVideo() {
+  if (tvVideo.obj) { cssScene.remove(tvVideo.obj); tvVideo.obj.element.remove(); }
+  Object.assign(tvVideo, { id: '', obj: null, frame: null });
+  if (tvScreenMesh) tvScreenMesh.material = cartoonMat;
+  $('tvBar').hidden = true;
+}
+function updateTvVideo(dt) {
+  if (!tvVideo.id) return;
+  if (dim !== D_CASTLE) { stopTvVideo(); return; }
+  const d = Math.hypot(pl.p.x - (TV.x + .5), pl.p.z - TV.z);
+  $('tvBar').hidden = d > 30;
+  // the sound fades as Angelina walks away from the TV
+  tvVideo.volT -= dt;
+  if (tvVideo.volT <= 0) {
+    tvVideo.volT = 0.5;
+    const v = Math.round(clamp(1 - (d - 6) / 26, 0, 1) * 100);
+    if (v !== tvVideo.vol) { tvVideo.vol = v; ytCmd('setVolume', [v]); if (v === 0) ytCmd('mute'); else ytCmd('unMute'); }
+  }
+}
+function renderCss() {
+  if (!cssRenderer || !tvVideo.obj) return;
+  tvVideo.obj.visible = dim === D_CASTLE && !wardrobeOpen;
+  cssRenderer.render(cssScene, camera);
+}
+$('tvPause').addEventListener('click', () => {
+  tvVideo.paused = !tvVideo.paused;
+  ytCmd(tvVideo.paused ? 'pauseVideo' : 'playVideo');
+  $('tvPause').textContent = tvVideo.paused ? 'Грати' : 'Пауза';
+});
+$('tvStop').addEventListener('click', () => { stopTvVideo(); toast('Телевізор показує наші мультики', 1500); });

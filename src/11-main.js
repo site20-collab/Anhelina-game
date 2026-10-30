@@ -122,6 +122,7 @@ function resize() {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
   viewOffset = '-';
+  if (cssRenderer) cssRenderer.setSize(innerWidth, innerHeight);
 }
 addEventListener('resize', resize);
 
@@ -158,6 +159,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   update(dt, now);
   renderer.render(scene, camera);
+  renderCss();
   requestAnimationFrame(frame);
 }
 setTimeout(() => {

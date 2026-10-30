@@ -202,7 +202,12 @@ function makeAtlas() {
 
 // ---------- three.js setup ----------
 const canvas = document.getElementById('game');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+// the canvas is see-through only where the castle TV shows a video playing behind it
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setClearColor(0x000000, 0);
+// the layer for web pages shown inside the world (the castle TV); made when first needed
+const cssScene = new THREE.Scene();
+let cssRenderer = null;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 const scene = new THREE.Scene();
 const skyColor = new THREE.Color(0x9fd8ff), skyTarget = new THREE.Color(0x9fd8ff);

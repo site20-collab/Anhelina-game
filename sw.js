@@ -1,6 +1,7 @@
 // Keeps the game playable without internet: the page is fetched fresh when online, everything else comes from the cache.
-const CACHE = 'angelina-world-v1';
+const CACHE = 'angelina-world-v2';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
+  'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js',
   'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
   'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'];
 
