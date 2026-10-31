@@ -41,7 +41,7 @@ button:focus-visible{outline:3px solid var(--violet);outline-offset:2px}
 
 body:not([data-mode="explore"]) .explore-only{display:none!important}
 body[data-mode="explore"] .game-only{display:none!important}
-body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool,body[data-mode="hide"] .build-tool,body[data-mode="jump"] .build-tool{display:none!important}
+body:not([data-mode="explore"]):not([data-mode="art"]) .build-tool{display:none!important}
 
 .game-hud{display:flex;flex-wrap:wrap;gap:4px;max-width:min(300px,44vw);pointer-events:none}
 .game-hud .pill{background:var(--panel);border-radius:10px;padding:3px 9px;font-weight:800;font-size:13px;font-variant-numeric:tabular-nums;box-shadow:0 2px 0 var(--shade);white-space:nowrap}
@@ -80,9 +80,9 @@ body[data-mode="race"] .build-tool,body[data-mode="arena"] .build-tool,body[data
 .jump:active,.shoot:active{transform:translateY(2px)}
 body.touch .joy-zone,body.touch .jump{display:block}
 body.touch[data-mode="arena"] .shoot{display:block}
-body[data-mode="race"] .jump{display:none!important}
+body[data-mode="race"] .jump,body[data-mode="sled"] .jump,body[data-mode="memo"] .jump{display:none!important}
 body.touch .slot .num{display:none}
-body[data-mode="race"] .hotbar,body[data-mode="arena"] .hotbar,body[data-mode="hide"] .hotbar,body[data-mode="jump"] .hotbar{display:none}
+body:not([data-mode="explore"]):not([data-mode="art"]) .hotbar{display:none}
 
 .toast{position:fixed;left:50%;top:26%;transform:translate(-50%,-50%) scale(.9);z-index:7;max-width:calc(100vw - 32px);text-align:center;
   background:var(--panel);border-radius:18px;padding:12px 20px;font-family:var(--display);font-weight:700;font-size:18px;
@@ -216,3 +216,6 @@ body.in-room .net-only{display:inline-flex!important}
 .tv-bar button.sound{background:var(--pink);animation:tvpulse 1.2s ease-in-out infinite}
 @keyframes tvpulse{50%{transform:scale(1.07)}}
 @media (prefers-reduced-motion:reduce){.tv-bar button.sound{animation:none}}
+
+.act.hot{background:#ff4f9a;color:#fff;box-shadow:0 5px 0 #b02a6a;animation:acthot .45s ease-in-out infinite alternate}
+@keyframes acthot{to{transform:translateX(-50%) scale(1.1)}}

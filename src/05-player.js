@@ -55,6 +55,7 @@ function stepEntity(e, mx, mz, speed, dt, jump) {
 
 // ---------- player ----------
 const SPEED = 4.6;
+let speedMul = 1;
 const pl = { p: new THREE.Vector3(), vel: new THREE.Vector3(), hw: 0.28, h: 1.7, onGround: false, blocked: false, jumpV: 8.6, float: false, facing: 0, accel: 16, coyote: 0 };
 let walk = 0, jumpBuf = 0, blinkT = 2.5, aimFaceT = 0, aimFacing = 0, hurtT = 0;
 function spawn() { pl.p.set(CX + 0.5, surfaceY(CX, CZ) + 0.01, CZ + 0.5); pl.vel.set(0, 0, 0); }
@@ -77,7 +78,7 @@ function updatePlayer(dt, now) {
   const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
   const mx = fx * iz + rx * ix, mz = fz * iz + rz * ix;
   jumpBuf = Math.max(0, jumpBuf - dt);
-  const res = stepEntity(pl, mx, mz, SPEED * (sprint ? 1.5 : 1), dt, playing && (jumpBuf > 0 || wantJump));
+  const res = stepEntity(pl, mx, mz, SPEED * speedMul * (sprint ? 1.5 : 1), dt, playing && (jumpBuf > 0 || wantJump));
   if (res.jumped) { jumpBuf = 0; sfx.jump(); }
   if (pl.p.y < -10) { respawnHere(); toast('Ой! Повертаємось'); }
   const moving = Math.hypot(mx, mz) > 0.1;
@@ -89,7 +90,7 @@ function updatePlayer(dt, now) {
   const sw = Math.sin(walk) * (moving ? 0.7 : 0);
   legs[0].rotation.x = sw; legs[1].rotation.x = -sw;
   const swim = res.inW && !pl.onGround;
-  const armed = dim === D_ARENA;
+  const armed = dim === D_ARENA || dim === D_FISH;
   arms[0].rotation.x = swim ? -2.6 + Math.sin(now / 150) * 0.4 : -sw * 0.8;
   arms[1].rotation.x = armed ? -1.45 : swim ? -2.6 - Math.sin(now / 150) * 0.4 : sw * 0.8;
   arms[0].rotation.z = pl.onGround || swim ? 0 : -0.5; arms[1].rotation.z = pl.onGround || swim || armed ? 0 : 0.5;
@@ -201,6 +202,7 @@ function setBlock(x, y, z, b) {
   rebuildAround(x, z);
 }
 function tapAt(cx, cy, place) {
+  if (dim === D_MEMO) { memoTap(cx, cy); return; }
   aim(cx, cy);
   const hit = pickBlock();
   if (dim <= D_CASTLE) { const m = pickMob(hit ? hit.t : camDist + REACH); if (m) { pet(m); return; } }

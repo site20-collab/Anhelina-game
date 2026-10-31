@@ -139,6 +139,13 @@ function buildAvatar(o, d) {
   box(0.06, 0.2, 0.06, '#ffffff', 0, -0.32, 0.02, blaster);
   box(0.16, 0.16, 0.05, '#9a7bff', 0, -0.2, 0.02, blaster);
   blaster.visible = d === D_ARENA;
+  // fishing rod, only by the pond
+  const rod = new THREE.Group();
+  arms[1].add(rod);
+  box(0.05, 0.05, 1.3, '#8a5a2b', 0, -0.48, 0.6, rod);
+  box(0.09, 0.09, 0.09, '#2b2140', 0.06, -0.48, 0.12, rod);
+  box(0.03, 0.03, 0.03, '#ffd23f', 0, -0.48, 1.26, rod);
+  rod.visible = d === D_FISH;
   return { body, legs, arms, eyes, crown, blaster };
 }
 function buildGirl() {

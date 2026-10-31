@@ -131,3 +131,46 @@ function updateFauna(dt, t) {
     pos.needsUpdate = true;
   }
 }
+
+// ---------- little fish in lakes and the castle moat ----------
+const fishes = [];
+['#ff8a1f', '#ffd23f', '#ff6fae', '#7cc8ff', '#b388ff', '#ffffff'].forEach((c, i) => {
+  for (let k = 0; k < 4; k++) {
+    const g = new THREE.Group();
+    box(0.34, 0.16, 0.12, c, 0, 0, 0, g);
+    box(0.12, 0.16, 0.04, c, -0.22, 0, 0, g);
+    box(0.04, 0.04, 0.02, '#1a1a1a', 0.12, 0.03, 0.065, g);
+    g.visible = false;
+    scene.add(g);
+    fishes.push({ g, c: new THREE.Vector3(), a: (i * 4 + k) * 0.7, r: 1 + (k % 3) * 0.6, sp: 0.6 + (k % 2) * 0.5, life: 0, ok: false });
+  }
+});
+function waterSpot(x, z) {
+  let y = surfaceY(x, z);
+  if (get(x, y, z) !== WATER || get(x, y + 1, z) !== WATER) return null;
+  return y + 0.7;
+}
+function updateFishSchool(dt, t) {
+  const here = dim === D_MAIN || dim === D_CASTLE || dim === D_FISH;
+  fishes.forEach((f, i) => {
+    if (!here) { f.g.visible = false; f.ok = false; return; }
+    f.life -= dt;
+    if (!f.ok || f.life <= 0 || f.c.distanceTo(pl.p) > 45) {
+      f.ok = false; f.g.visible = false;
+      for (let tries = 0; tries < 4 && !f.ok; tries++) {
+        const a = Math.random() * Math.PI * 2, r = 4 + Math.random() * 30;
+        const x = Math.floor(pl.p.x + Math.cos(a) * r), z = Math.floor(pl.p.z + Math.sin(a) * r);
+        const y = waterSpot(x, z);
+        if (y !== null) { f.c.set(x + .5, y, z + .5); f.ok = true; f.life = 10 + Math.random() * 15; }
+      }
+      if (!f.ok) return;
+    }
+    f.a += f.sp * dt;
+    const x = f.c.x + Math.cos(f.a) * f.r, z = f.c.z + Math.sin(f.a) * f.r;
+    if (get(Math.floor(x), Math.floor(f.c.y), Math.floor(z)) !== WATER) { f.sp = -f.sp; f.a += f.sp * dt * 2; return; }
+    f.g.position.set(x, f.c.y + Math.sin(t * 3 + i) * 0.05, z);
+    f.g.rotation.y = -f.a - (f.sp > 0 ? Math.PI / 2 : -Math.PI / 2);
+    f.g.children[1].rotation.y = Math.sin(t * 12 + i) * 0.5;
+    f.g.visible = true;
+  });
+}

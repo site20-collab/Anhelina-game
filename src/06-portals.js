@@ -35,12 +35,17 @@ function makePortal(frame, top, a, b, label) {
 // side: which side of the portal you step out on (+1 south, -1 north)
 const PORTALS = [
   { dim: D_MAIN, to: D_CASTLE, x: CX, z: CZ - 5, side: 1, open: false, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'До замку') },
-  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 50, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
-  { dim: D_CASTLE, to: D_RACE, x: CX - 28, z: CZ + 62, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
-  { dim: D_CASTLE, to: D_ART, x: CX - 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
-  { dim: D_CASTLE, to: D_ARENA, x: CX, z: CZ + 66, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
-  { dim: D_CASTLE, to: D_HIDE, x: CX + 14, z: CZ + 62, side: -1, open: true, ...makePortal('#3f9b3a', '#ffd23f', '#5cbf4f', '#c9f29b', 'Хованки') },
-  { dim: D_CASTLE, to: D_JUMP, x: CX + 28, z: CZ + 62, side: -1, open: true, ...makePortal('#7cc8ff', '#ffffff', '#9ad8ff', '#ffffff', 'Стрибки по хмаринках') },
+  { dim: D_CASTLE, to: D_MAIN, x: CX, z: CZ + 62, side: -1, open: true, ...makePortal('#9a7bff', '#ff6fae', '#9e61ff', '#ff6bbd', 'Додому') },
+  { dim: D_CASTLE, to: D_RACE, x: CX - 28, z: CZ + 78, side: -1, open: true, ...makePortal('#3d7be0', '#ffd23f', '#3d9bff', '#ffe066', 'Гонки') },
+  { dim: D_CASTLE, to: D_ART, x: CX - 14, z: CZ + 78, side: -1, open: true, ...makePortal('#3bb54a', '#ff8a1f', '#5fd36a', '#ffb347', 'Повтори картинку') },
+  { dim: D_CASTLE, to: D_ARENA, x: CX, z: CZ + 78, side: -1, open: true, ...makePortal('#ff4f9a', '#ffffff', '#ff4f9a', '#ffc2e0', 'Цукеркова битва') },
+  { dim: D_CASTLE, to: D_HIDE, x: CX + 14, z: CZ + 78, side: -1, open: true, ...makePortal('#3f9b3a', '#ffd23f', '#5cbf4f', '#c9f29b', 'Хованки') },
+  { dim: D_CASTLE, to: D_JUMP, x: CX + 28, z: CZ + 78, side: -1, open: true, ...makePortal('#7cc8ff', '#ffffff', '#9ad8ff', '#ffffff', 'Стрибки по хмаринках') },
+  { dim: D_CASTLE, to: D_FISH, x: CX - 28, z: CZ + 94, side: -1, open: true, ...makePortal('#3d8fe0', '#7be0a0', '#3d8fe0', '#9ad8ff', 'Риболовля') },
+  { dim: D_CASTLE, to: D_STARS, x: CX - 14, z: CZ + 94, side: -1, open: true, ...makePortal('#2b2140', '#ffd23f', '#3a4a8c', '#ffe066', 'Зоряний дощ') },
+  { dim: D_CASTLE, to: D_MEMO, x: CX, z: CZ + 94, side: -1, open: true, ...makePortal('#ff8a1f', '#ff6fae', '#ffb347', '#ff9fd2', 'Знайди пару') },
+  { dim: D_CASTLE, to: D_MUSIC, x: CX + 14, z: CZ + 94, side: -1, open: true, ...makePortal('#9a7bff', '#ffffff', '#b388ff', '#ffffff', 'Музичні клавіші') },
+  { dim: D_CASTLE, to: D_SLED, x: CX + 28, z: CZ + 94, side: -1, open: true, ...makePortal('#dfe6f0', '#3d7be0', '#ffffff', '#9ad8ff', 'Санчата') },
 ];
 const GAME_START = {
   [D_RACE]: { x: CX, z: CZ, face: 0, yaw: Math.PI },
@@ -48,6 +53,11 @@ const GAME_START = {
   [D_ARENA]: { x: CX, z: CZ + 22, face: Math.PI, yaw: 0 },
   [D_HIDE]: () => hideStart(),
   [D_JUMP]: () => jumpStart(),
+  [D_FISH]: () => fishStart(),
+  [D_STARS]: { x: CX, z: CZ + 12, face: Math.PI, yaw: 0, pitch: 0.55 },
+  [D_MEMO]: { x: CX, z: CZ + 7, face: Math.PI, yaw: 0, pitch: 0.95 },
+  [D_MUSIC]: { x: CX, z: CZ + 10, face: Math.PI, yaw: 0, pitch: 0.6 },
+  [D_SLED]: { x: CX, z: CZ, face: 0, yaw: Math.PI },
 };
 function placePortal(P) {
   withDim(P.dim, () => {
@@ -66,7 +76,8 @@ function arrivalFor(to, from) {
   return { x: P.x, z: P.z + P.side * 3, face: P.side > 0 ? 0 : Math.PI, yaw: P.side > 0 ? Math.PI : 0 };
 }
 // a game's world is built on the way in and dropped on the way out, so only the two big worlds stay in memory
-const GEN = { [D_RACE]: () => generateRace(), [D_ART]: () => generateArt(), [D_ARENA]: () => generateArena(), [D_HIDE]: () => generateHide(), [D_JUMP]: () => generateJump() };
+const GEN = { [D_RACE]: () => generateRace(), [D_ART]: () => generateArt(), [D_ARENA]: () => generateArena(), [D_HIDE]: () => generateHide(), [D_JUMP]: () => generateJump(),
+  [D_FISH]: () => generateFish(), [D_STARS]: () => generateStars(), [D_MEMO]: () => generateMemo(), [D_MUSIC]: () => generateMusic(), [D_SLED]: () => generateSled() };
 function switchDim(to) {
   const from = dim;
   if (to > D_CASTLE && !worlds[to]) { allocDim(to); useDim(to); GEN[to](); }

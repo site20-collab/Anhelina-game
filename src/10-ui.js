@@ -118,6 +118,11 @@ function enterGame(d) {
   if (d === D_ARENA) enterArena();
   if (d === D_HIDE) enterHide();
   if (d === D_JUMP) enterJump();
+  if (d === D_FISH) enterFish();
+  if (d === D_STARS) enterStars();
+  if (d === D_MEMO) enterMemo();
+  if (d === D_MUSIC) enterMusic();
+  if (d === D_SLED) enterSled();
 }
 function leaveGame(d) {
   if (d === D_RACE) leaveRace();
@@ -125,6 +130,11 @@ function leaveGame(d) {
   if (d === D_ARENA) leaveArena();
   if (d === D_HIDE) leaveHide();
   if (d === D_JUMP) leaveJump();
+  if (d === D_FISH) leaveFish();
+  if (d === D_STARS) leaveStars();
+  if (d === D_MEMO) leaveMemo();
+  if (d === D_MUSIC) leaveMusic();
+  if (d === D_SLED) leaveSled();
 }
 
 modeBtn.addEventListener('click', () => { setMode(!building); toast(building ? 'Будуємо!' : 'Ламаємо!', 900); });
@@ -330,13 +340,13 @@ shootBtn.addEventListener('pointerdown', e => { e.preventDefault(); if (!playing
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => shootBtn.addEventListener(t, () => { arena.firing = false; }));
 
 // ---------- save ----------
-const SAVE = 'angelina-world-v4';
+const SAVE = 'angelina-world-v5';
 let editsByDim = [{}, {}], saveT = 0;
 function save() {
   if (net.role === 'guest') return;
   try {
     localStorage.setItem(SAVE, JSON.stringify({ e: editsByDim[0], e2: editsByDim[1], h: [...collected], f: [...friends], o: outfit,
-      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, view, sound: soundOn, inv: invOpen, n: net.name, yt: ytList,
+      art: art.level, race: race.best, arena: arena.best, hide: hide.best, jump: jump.best, fish: fishing.best, fishKinds: [...fishKindsEver], stars: starGame.best, memo: memo.best, music: music.best, sled: sled.best, sledGifts: sled.bestGifts, view, sound: soundOn, inv: invOpen, n: net.name, yt: ytList,
       night: sky.night, tod: sky.t, fu: playerFurniture() }));
   } catch (e) {}
 }
@@ -356,6 +366,8 @@ function load() {
     if (s.n) net.name = cleanName(s.n);
     if (Array.isArray(s.yt)) ytList = s.yt.filter(v => v && /^[\w-]{11}$/.test(v.id)).slice(0, 20).map(v => ({ id: v.id, name: String(v.name || 'Мультик').slice(0, 40) }));
     hide.best = s.hide || 0; jump.best = s.jump || 0;
+    fishing.best = s.fish || 0; (s.fishKinds || []).forEach(k => fishKindsEver.add(k)); starGame.best = s.stars || 0; memo.best = s.memo || 0;
+    music.best = s.music || 0; sled.best = s.sled || 0; sled.bestGifts = s.sledGifts || 0;
     if (s.night === false) sky.night = false;
     if (typeof s.tod === 'number') sky.t = s.tod % 1;
     loadFurniture(s.fu);

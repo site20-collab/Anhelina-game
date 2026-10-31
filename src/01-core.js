@@ -1,8 +1,9 @@
 // ---------- world size & dimensions ----------
-const SX = 512, SY = 48, SZ = 512, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
-const CX = 256, CZ = 256, SEA = 14, KH = 16;
+const SX = 640, SY = 48, SZ = 640, CS = 32, NCX = SX / CS, NCZ = SZ / CS;
+const CX = 320, CZ = 320, SEA = 14, KH = 16;
 // 0 big biome world, 1 princess kingdom, then the games: race track, picture workshop, candy arena, hide and seek, cloud jumping
-const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, D_HIDE = 5, D_JUMP = 6, NDIMS = 7;
+const D_MAIN = 0, D_CASTLE = 1, D_RACE = 2, D_ART = 3, D_ARENA = 4, D_HIDE = 5, D_JUMP = 6,
+  D_FISH = 7, D_STARS = 8, D_MEMO = 9, D_MUSIC = 10, D_SLED = 11, NDIMS = 12;
 // the two big worlds stay in memory; a game's world is built when you step in and dropped when you leave
 const worlds = [], biomeMaps = [];
 for (let d = 0; d < NDIMS; d++) { worlds.push(d <= D_CASTLE ? new Uint8Array(SX * SY * SZ) : null); biomeMaps.push(d <= D_CASTLE ? new Uint8Array(SX * SZ) : null); }
@@ -15,7 +16,8 @@ function withDim(d, fn) {
   useDim(d);
   try { return fn(); } finally { world = pw; biomeMap = pb; }
 }
-const modeOf = d => d === D_RACE ? 'race' : d === D_ART ? 'art' : d === D_ARENA ? 'arena' : d === D_HIDE ? 'hide' : d === D_JUMP ? 'jump' : 'explore';
+const MODES = { [D_RACE]: 'race', [D_ART]: 'art', [D_ARENA]: 'arena', [D_HIDE]: 'hide', [D_JUMP]: 'jump', [D_FISH]: 'fish', [D_STARS]: 'stars', [D_MEMO]: 'memo', [D_MUSIC]: 'music', [D_SLED]: 'sled' };
+const modeOf = d => MODES[d] || 'explore';
 const I = (x, y, z) => x + SX * (z + SZ * y);
 const inB = (x, y, z) => x >= 0 && x < SX && y >= 0 && y < SY && z >= 0 && z < SZ;
 const get = (x, y, z) => inB(x, y, z) ? world[I(x, y, z)] : 0;
@@ -29,7 +31,7 @@ const GRASS = 1, DIRT = 2, STONE = 3, SAND = 4, LOG = 5, LEAVES = 6, CANDY = 7, 
   CORNFLOWER = 26, LAVENDER = 27, DAISY = 28, TULIP = 29, SUNFLOWER = 30, MARIGOLD = 31,
   ASPHALT = 32, ROADLINE = 33, KERB = 34, CHECKER = 35, BOOST = 36,
   W_RED = 37, W_ORANGE = 38, W_YELLOW = 39, W_GREEN = 40, W_BLUE = 41, W_PURPLE = 42, W_PINK = 43, W_WHITE = 44, W_BLACK = 45, W_BROWN = 46,
-  FURN = 47, LANTERN = 48, GRAVEL = 49, SANDSTONE = 50, WHEAT = 51, CLOUD = 52;
+  FURN = 47, LANTERN = 48, GRAVEL = 49, SANDSTONE = 50, WHEAT = 51, CLOUD = 52, DRYGRASS = 53, BAMBOO = 54, ACACIA = 55;
 const FLOWERS = [RED, YELLOW, CORNFLOWER, LAVENDER, DAISY, TULIP, SUNFLOWER, MARIGOLD];
 const WOOLS = [W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK, W_BROWN];
 // t: [top, side, bottom] tiles; k: 0 solid, 1 water, 2 plant, 3 furniture (solid, drawn as a model), 4 glowing
@@ -87,6 +89,9 @@ const BLOCKS = [null,
   blk('Пісковик', [52, 53, 52], '#e3c98d'),
   blk('Пшениця', 54, '#e6c35a', 2),
   blk('Хмаринка', 55, '#ffffff'),
+  blk('Суха трава', [56, 57, 2], '#d9c26a'),
+  blk('Бамбук', 58, '#7cbf3a', 2),
+  blk('Листя акації', 59, '#5f9a2e'),
 ];
 const NT = 64;
 const OPQ = new Uint8Array(64), SOLID = new Uint8Array(64);
@@ -101,7 +106,7 @@ function solidAt(x, y, z) {
 }
 const HOTBAR_EXPLORE = [PLANKS, CANDY, MAGIC, SNOW, BRICK, GOLD, CASTLE, ROOF, CARPET, ICE, WATER, LANTERN, GRAVEL, SANDSTONE, CLOUD,
   W_RED, W_ORANGE, W_YELLOW, W_GREEN, W_BLUE, W_PURPLE, W_PINK, W_WHITE, W_BLACK,
-  GRASS, PINKGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, CACTUS, ...FLOWERS, WHEAT];
+  GRASS, PINKGRASS, DRYGRASS, SAND, STONE, LOG, LEAVES, PINKLEAVES, ACACIA, CACTUS, BAMBOO, ...FLOWERS, WHEAT];
 const HOTBAR_ART = WOOLS;
 
 // ---------- noise ----------
@@ -185,6 +190,10 @@ function makeAtlas() {
     (x, y) => y % 5 === 4 ? '#c9a868' : (r() < .08 ? '#d6b979' : '#e3c98d'),
     (x, y) => { if (x % 3 === 1 && y >= 5) return y < 7 ? '#d9a93a' : '#8fae3c'; if (x % 3 === 1 && y >= 2 && y < 5) return '#e6c35a'; return null; },
     (x, y) => (r() < .1 ? '#eef3ff' : '#ffffff'),
+    () => r() < .14 ? '#c4aa52' : r() < .08 ? '#e8d47e' : '#d9c26a',
+    (x, y) => (y < 3 || (y === 3 && r() < .5)) ? '#d9c26a' : dirt(),
+    (x, y) => (x >= 6 && x <= 9) ? (y % 5 === 0 ? '#4f8a24' : (x === 6 ? '#9ad35a' : '#7cbf3a')) : ((y % 5 === 1 && (x === 10 || x === 11 || x === 4 || x === 5)) ? '#6aa835' : null),
+    () => r() < .18 ? '#4a7e22' : r() < .12 ? '#79b443' : '#5f9a2e',
   ];
   tiles.forEach((fn, t) => {
     for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {

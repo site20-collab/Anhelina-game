@@ -42,7 +42,7 @@ function goToSleep() {
 }
 
 // ---------- the big TV in the castle cinema ----------
-const TV = { x: CX + 10, z: CZ - 16.75, y: KH + 1.4, w: 6, h: 3.4 };
+const TV = { x: CX + 11.5, z: CZ - 24.75, y: KH + 1.4, w: 6, h: 3.4 };
 const cartoon = { c: document.createElement('canvas'), t: 0, acc: 0, scene: 0 };
 cartoon.c.width = 320; cartoon.c.height = 180;
 const cartoonTex = new THREE.CanvasTexture(cartoon.c);
@@ -205,7 +205,9 @@ const actBtn = $('actBtn');
 let actKind = '';
 function nearbyAction() {
   if (!playing || wardrobeOpen || traveling) return '';
-  if (dim === D_CASTLE && pl.p.x > CX + 6 && Math.hypot(pl.p.x - (TV.x + .5), pl.p.z - TV.z) < 10 && Math.abs(pl.p.y - KH - 1) < 2) return 'tv';
+  if (dim === D_CASTLE && pl.p.x > CX + 8 && Math.hypot(pl.p.x - (TV.x + .5), pl.p.z - TV.z) < 10 && Math.abs(pl.p.y - KH - 1) < 2) return 'tv';
+  if (dim === D_FISH) return pierEnd() ? 'fish' : '';
+  if (dim === D_MEMO) return memoNear() ? 'flip' : '';
   if (dim > D_CASTLE) return '';
   const px0 = Math.floor(pl.p.x), pz0 = Math.floor(pl.p.z), py0 = Math.floor(pl.p.y);
   let bed = false, sign = false;
@@ -230,16 +232,20 @@ function updateExtras(dt) {
   if (actT > 0) return;
   actT = 0.2;
   const k = nearbyAction();
-  if (k === actKind) return;
+  if (k === actKind && k !== 'fish') return;
   actKind = k;
   actBtn.hidden = !k;
   const key = document.body.classList.contains('touch') ? '' : ' (F)';
-  actBtn.textContent = k === 'sign' ? 'Прочитати табличку' + key : k === 'sleep' ? 'Лягти спати' + key : k === 'tv' ? 'Дивитися мультики' + key : '';
+  const label = k === 'sign' ? 'Прочитати табличку' : k === 'sleep' ? 'Лягти спати' : k === 'tv' ? 'Дивитися мультики' : k === 'fish' ? fishLabel() : k === 'flip' ? 'Перевернути картку' : '';
+  if (label && actBtn.textContent !== label + key) actBtn.textContent = label + key;
+  actBtn.classList.toggle('hot', k === 'fish' && fishing.state === 'bite');
 }
 function doAction() {
   if (actKind === 'sign') openSign();
   else if (actKind === 'sleep') goToSleep();
   else if (actKind === 'tv') openTv();
+  else if (actKind === 'fish') { fishAction(); return; }
+  else if (actKind === 'flip') { memoFlipNear(); actT = 0.25; return; }
   actKind = ''; actBtn.hidden = true; actT = 0.6;
 }
 actBtn.addEventListener('click', doAction);

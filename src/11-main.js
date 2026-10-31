@@ -57,6 +57,9 @@ function update(dt, now) {
   if (mode === 'race') {
     updateRace(dt);
     raceCamera(dt);
+  } else if (mode === 'sled') {
+    updateSled(dt, t);
+    sledCamera(dt);
   } else {
     updatePlayer(dt, now);
     updateCamera(dt);
@@ -74,6 +77,10 @@ function update(dt, now) {
   if (mode === 'arena') updateArena(dt);
   if (mode === 'hide') updateHide(dt, t);
   if (mode === 'jump') updateJump(dt);
+  if (mode === 'fish') updateFishing(dt, t);
+  if (mode === 'stars') updateStars(dt, t);
+  if (mode === 'memo') updateMemo(dt, t);
+  if (mode === 'music') updateMusic(dt);
   updateParticles(dt);
   clouds.forEach(c => {
     c.position.x += dt * 0.6;
@@ -101,9 +108,10 @@ function update(dt, now) {
   const horizon = updateSky(dt, skyColor);
   windTime.value = t;
   waterTex.offset.set(t * 0.05, t * 0.03);
-  if (underwater && mode !== 'race') { skyDome.visible = false; scene.background = waterFog; scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
+  if (underwater && mode !== 'race' && mode !== 'sled') { skyDome.visible = false; scene.background = waterFog; scene.fog.color.copy(waterFog); scene.fog.near = 1; scene.fog.far = 20; }
   else { skyDome.visible = true; scene.background = null; scene.fog.color.copy(horizon); scene.fog.near = VIEW * CS * 0.42; scene.fog.far = VIEW * CS * 0.98; }
   updateFauna(dt, t);
+  updateFishSchool(dt, t);
   updateFurniture();
   updateLabels();
   updateExtras(dt, t);

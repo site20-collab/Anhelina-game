@@ -173,6 +173,98 @@ function buildPony(m) {
   b.scale.setScalar(0.8);
   return { g, legs };
 }
+function buildPanda() {
+  const g = new THREE.Group(), W = '#f7f7f7', K = '#2b2630';
+  box(0.5, 0.46, 0.66, W, 0, 0.52, 0, g);
+  box(0.52, 0.2, 0.3, K, 0, 0.6, 0.08, g);
+  box(0.44, 0.4, 0.38, W, 0, 0.84, 0.4, g);
+  [-0.15, 0.15].forEach(x => { box(0.12, 0.12, 0.08, K, x, 1.06, 0.38, g); box(0.11, 0.12, 0.02, K, x * 0.7, 0.87, 0.595, g); box(0.04, 0.05, 0.01, '#ffffff', x * 0.7 + 0.02, 0.89, 0.607, g); });
+  box(0.16, 0.1, 0.06, '#e8e2dc', 0, 0.76, 0.6, g); box(0.07, 0.05, 0.02, K, 0, 0.79, 0.635, g);
+  box(0.05, 0.4, 0.05, '#7cbf3a', 0.22, 0.75, 0.55, g).rotation.z = 0.5;
+  return { g, legs: legSet(g, [[-0.15, 0.2], [0.15, 0.2], [-0.15, -0.2], [0.15, -0.2]], 0.16, 0.3, K) };
+}
+function buildGiraffe() {
+  const g = new THREE.Group(), Y = '#f2c45a', S = '#b8742f';
+  box(0.4, 0.4, 0.8, Y, 0, 1.2, 0, g);
+  [[0.1, 0.2], [-0.12, -0.15], [0.08, -0.3], [-0.1, 0.25]].forEach(([x, z]) => box(0.12, 0.02, 0.14, S, x, 1.41, z, g));
+  const neck = pivot(0, 1.3, 0.3, g);
+  box(0.18, 1.1, 0.2, Y, 0, 0.55, 0, neck);
+  box(0.05, 0.1, 0.1, S, 0, 0.4, 0.105, neck); box(0.05, 0.1, 0.1, S, 0, 0.8, 0.105, neck);
+  neck.rotation.x = 0.2;
+  box(0.24, 0.22, 0.38, Y, 0, 2.42, 0.62, g);
+  box(0.05, 0.14, 0.05, S, -0.07, 2.6, 0.55, g); box(0.05, 0.14, 0.05, S, 0.07, 2.6, 0.55, g);
+  eyePair(g, 2.47, 0.815, 0.08, 0.04);
+  return { g, legs: legSet(g, [[-0.13, 0.28], [0.13, 0.28], [-0.13, -0.28], [0.13, -0.28]], 0.1, 1.0, Y) };
+}
+function buildElephant() {
+  const g = new THREE.Group(), G = '#a7b0c0', D = '#8f98aa';
+  box(0.8, 0.7, 1.1, G, 0, 1.0, 0, g);
+  box(0.6, 0.6, 0.5, G, 0, 1.25, 0.7, g);
+  box(0.08, 0.5, 0.42, D, -0.36, 1.25, 0.6, g); box(0.08, 0.5, 0.42, D, 0.36, 1.25, 0.6, g);
+  const trunk = pivot(0, 1.05, 0.95, g);
+  box(0.16, 0.5, 0.16, G, 0, -0.2, 0, trunk); box(0.14, 0.16, 0.18, G, 0, -0.45, 0.06, trunk);
+  trunk.rotation.x = -0.2;
+  box(0.05, 0.05, 0.16, '#fff8ec', -0.16, 1.04, 0.96, g); box(0.05, 0.05, 0.16, '#fff8ec', 0.16, 1.04, 0.96, g);
+  eyePair(g, 1.38, 0.955, 0.18, 0.05);
+  box(0.06, 0.06, 0.3, D, 0, 1.12, -0.68, g).rotation.x = -0.6;
+  return { g, legs: legSet(g, [[-0.25, 0.35], [0.25, 0.35], [-0.25, -0.35], [0.25, -0.35]], 0.24, 0.65, G) };
+}
+function buildOwl() {
+  const g = new THREE.Group(), B = '#9a7a5a', L = '#e8d8c0';
+  box(0.36, 0.42, 0.32, B, 0, 0.34, 0, g);
+  box(0.24, 0.26, 0.02, L, 0, 0.3, 0.165, g);
+  box(0.36, 0.28, 0.3, B, 0, 0.66, 0.02, g);
+  [-0.09, 0.09].forEach(x => { box(0.13, 0.13, 0.02, '#ffffff', x, 0.68, 0.175, g); box(0.07, 0.07, 0.02, '#2b2140', x, 0.68, 0.187, g); box(0.06, 0.08, 0.06, B, x * 1.6, 0.84, 0.02, g); });
+  box(0.06, 0.06, 0.06, '#f4c23f', 0, 0.6, 0.19, g);
+  const arms = [-0.2, 0.2].map(x => { const p = pivot(x, 0.5, 0, g); box(0.05, 0.3, 0.24, '#7a5a3a', 0, -0.15, 0, p); return p; });
+  const legs = [-0.08, 0.08].map(x => { const p = pivot(x, 0.12, 0, g); box(0.08, 0.12, 0.12, '#f4c23f', 0, -0.06, 0.03, p); return p; });
+  return { g, legs, arms, waddle: true };
+}
+function buildSquirrel() {
+  const g = new THREE.Group(), R = '#c8692a', L = '#f4dcc0';
+  box(0.22, 0.24, 0.34, R, 0, 0.24, 0, g);
+  box(0.24, 0.22, 0.22, R, 0, 0.42, 0.18, g);
+  box(0.12, 0.1, 0.02, L, 0, 0.36, 0.295, g);
+  box(0.06, 0.1, 0.04, R, -0.07, 0.57, 0.16, g); box(0.06, 0.1, 0.04, R, 0.07, 0.57, 0.16, g);
+  eyePair(g, 0.45, 0.295, 0.06, 0.035);
+  box(0.18, 0.4, 0.14, R, 0, 0.46, -0.24, g).rotation.x = -0.3;
+  box(0.16, 0.12, 0.14, L, 0, 0.66, -0.32, g);
+  return { g, legs: legSet(g, [[-0.07, 0.1], [0.07, 0.1], [-0.07, -0.1], [0.07, -0.1]], 0.06, 0.12, R) };
+}
+function buildFrog(m) {
+  const g = new THREE.Group(), G = ['#5cbf4f', '#7be0a0', '#9ad35a'][m.id % 3], D = '#3f9b3a';
+  box(0.34, 0.18, 0.34, G, 0, 0.14, 0, g);
+  box(0.3, 0.14, 0.2, G, 0, 0.26, 0.1, g);
+  [-0.09, 0.09].forEach(x => { box(0.1, 0.1, 0.1, G, x, 0.36, 0.1, g); box(0.06, 0.06, 0.02, '#ffffff', x, 0.37, 0.155, g); box(0.03, 0.04, 0.02, '#1a1a1a', x, 0.37, 0.165, g); });
+  box(0.16, 0.02, 0.02, '#c4486a', 0, 0.22, 0.205, g);
+  return { g, legs: legSet(g, [[-0.15, 0.08], [0.15, 0.08], [-0.18, -0.1], [0.18, -0.1]], 0.08, 0.06, D) };
+}
+function buildCow(m) {
+  const g = new THREE.Group(), W = '#f7f4ee', K = m.id % 2 ? '#2b2630' : '#8a5a33';
+  box(0.56, 0.5, 0.9, W, 0, 0.7, 0, g);
+  [[0.15, 0.2, 0.12], [-0.18, -0.15, 0.14], [0.2, -0.3, 0.1]].forEach(([x, z, w]) => box(w * 2, 0.02, w * 2.2, K, x, 0.955, z, g));
+  box(0.4, 0.36, 0.34, W, 0, 0.88, 0.58, g);
+  box(0.42, 0.14, 0.12, '#ffc0cf', 0, 0.76, 0.76, g);
+  box(0.05, 0.05, 0.02, '#8a4a5a', -0.08, 0.77, 0.825, g); box(0.05, 0.05, 0.02, '#8a4a5a', 0.08, 0.77, 0.825, g);
+  box(0.06, 0.12, 0.06, '#f4e3c8', -0.16, 1.1, 0.55, g); box(0.06, 0.12, 0.06, '#f4e3c8', 0.16, 1.1, 0.55, g);
+  box(0.12, 0.06, 0.1, K, -0.25, 0.98, 0.55, g); box(0.12, 0.06, 0.1, K, 0.25, 0.98, 0.55, g);
+  eyePair(g, 0.95, 0.755, 0.1, 0.05);
+  box(0.16, 0.12, 0.16, '#ffc0cf', 0, 0.42, 0.1, g);
+  return { g, legs: legSet(g, [[-0.18, 0.3], [0.18, 0.3], [-0.18, -0.3], [0.18, -0.3]], 0.14, 0.45, W) };
+}
+function buildHen(m, baby) {
+  const g = new THREE.Group(), b = new THREE.Group(); g.add(b);
+  const C = baby ? '#ffe066' : (m.id % 2 ? '#ffffff' : '#c8692a');
+  box(0.3, 0.28, 0.36, C, 0, 0.3, 0, b);
+  box(0.2, 0.22, 0.2, C, 0, 0.52, 0.14, b);
+  if (!baby) { box(0.06, 0.1, 0.12, '#e8333a', 0, 0.68, 0.14, b); box(0.05, 0.08, 0.04, '#e8333a', 0, 0.43, 0.25, b); box(0.14, 0.18, 0.08, C, 0, 0.44, -0.2, b).rotation.x = -0.5; }
+  box(0.08, 0.05, 0.08, '#ff9f1c', 0, 0.5, 0.27, b);
+  eyePair(b, 0.56, 0.245, 0.06, 0.035);
+  const arms = [-0.16, 0.16].map(x => { const p = pivot(x, 0.38, 0, b); box(0.04, 0.16, 0.24, C, 0, -0.08, 0, p); return p; });
+  const legs = [-0.07, 0.07].map(x => { const p = pivot(x, 0.16, 0, b); box(0.04, 0.16, 0.04, '#ff9f1c', 0, -0.08, 0, p); return p; });
+  if (baby) b.scale.setScalar(0.55);
+  return { g, legs, arms };
+}
 const VILLAGER_NAMES = ['Оксанка', 'Марічка', 'Тарасик', 'Петрик', 'Соломійка', 'Іванко', 'Дарка', 'Остапчик', 'Христинка', 'Богданчик', 'Зеня', 'Лукаш'];
 const VILLAGER_SAY = ['Привіт, Ангеліно!', 'Гарна сьогодні погода!', 'Заходь у гості!', 'Ти бачила мого котика?', 'У нас найсмачніші пиріжки!', 'Тут поруч є сердечко!', 'Дякую, що завітала!'];
 function buildVillager(m) {
@@ -234,6 +326,15 @@ const MOB_TYPES = {
   flamingo: { name: 'Фламінго',   build: buildFlamingo, speed: 1.3, hw: 0.2, h: 1.6,  say: 'Ґа-ґа!', swims: true },
   puppy:    { name: 'Цуценя',     build: buildPuppy,   speed: 2.6, hw: 0.2,  h: 0.7,  say: 'Гав-гав!' },
   pony:     { name: 'Поні',       build: buildPony,    speed: 2.2, hw: 0.28, h: 1.3,  say: 'І-го-го!' },
+  panda:    { name: 'Панда',      build: buildPanda,   speed: 1.2, hw: 0.28, h: 1.1,  say: 'Ням-ням, бамбук!' },
+  giraffe:  { name: 'Жирафа',     build: buildGiraffe, speed: 1.8, hw: 0.28, h: 2.7,  say: 'Звідси все видно!' },
+  elephant: { name: 'Слоненя',    build: buildElephant, speed: 1.3, hw: 0.4, h: 1.6,  say: 'Ту-ру-ру!' },
+  owl:      { name: 'Совеня',     build: buildOwl,     speed: 1.0, hw: 0.18, h: 0.9,  say: 'Угу-угу!' },
+  squirrel: { name: 'Білочка',    build: buildSquirrel, speed: 2.8, hw: 0.14, h: 0.6, say: 'Де мій горішок?', hop: true },
+  frog:     { name: 'Жабка',      build: buildFrog,    speed: 2.0, hw: 0.16, h: 0.4,  say: 'Ква-ква!', hop: true, swims: true },
+  cow:      { name: 'Корівка',    build: buildCow,     speed: 1.0, hw: 0.3,  h: 1.2,  say: 'Му-у-у!' },
+  hen:      { name: 'Курочка',    build: m => buildHen(m, false), speed: 1.4, hw: 0.16, h: 0.7, say: 'Ко-ко-ко!' },
+  chick:    { name: 'Курчатко',   build: m => buildHen(m, true), speed: 2.2, hw: 0.1, h: 0.4, say: 'Пі-пі!' },
   villager: { name: 'Житель',     build: buildVillager, speed: 1.3, hw: 0.28, h: 1.7, say: '' },
   duck:     { name: 'Качка',      build: m => buildDuck(m, false), speed: 1.6, hw: 0.2, h: 0.6, say: 'Кря-кря!', swims: true },
   duckling: { name: 'Каченя',     build: m => buildDuck(m, true),  speed: 2.4, hw: 0.12, h: 0.35, say: 'Пі-пі-пі!', swims: true },
@@ -255,15 +356,27 @@ const PET_NAMES = {
   puppy: ['Бім', 'Тузик', 'Ласка', 'Плямка', 'Рекс', 'Булька'],
   pony: ['Зорька', 'Карамелька', 'Іскра', 'Хмаринка'],
   villager: VILLAGER_NAMES,
+  panda: ['Бамбуся', 'Пухнастик', 'Чорновушко', 'Сонько'],
+  giraffe: ['Довгошийка', 'Плямочка', 'Вишенька'],
+  elephant: ['Хоботок', 'Сіренька', 'Велетник'],
+  owl: ['Угушка', 'Мудрик', 'Пір\'ячко'],
+  squirrel: ['Горішок', 'Рудик', 'Пухнастохвостик'],
+  frog: ['Квакуша', 'Зеленко', 'Стрибко'],
+  cow: ['Зірка', 'Ромашка', 'Мілка'],
+  hen: ['Рябушка', 'Квочка', 'Золотко'],
+  chick: ['Жовтик', 'Пушинка', 'Крихітка', 'Сонечко'],
 };
 const SPAWN = {
-  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep', 'puppy', 'pony'],
-  [FOREST]: ['bunny', 'fox', 'hedgehog', 'bear'],
+  [MEADOW]: ['cat', 'bunny', 'sheep', 'piglet', 'sheep', 'puppy', 'pony', 'frog'],
+  [FOREST]: ['bunny', 'fox', 'hedgehog', 'bear', 'owl', 'squirrel', 'squirrel'],
+  [SAVANNA]: ['giraffe', 'elephant', 'giraffe', 'turtle'],
+  [BAMBOOB]: ['panda', 'panda', 'squirrel'],
   [DESERT]: ['turtle', 'flamingo'],
   [SNOWY]: ['penguin', 'penguin', 'fox', 'bear', 'bunny'],
   [CANDYLAND]: ['unicorn', 'unicorn', 'piglet'],
 };
-const SPAWN_MAX = { cat: 20, bunny: 24, penguin: 18, turtle: 16, unicorn: 18, sheep: 24, piglet: 18, fox: 16, hedgehog: 14, bear: 14, flamingo: 14, puppy: 16, pony: 14 };
+const SPAWN_MAX = { cat: 22, bunny: 26, penguin: 20, turtle: 18, unicorn: 20, sheep: 26, piglet: 20, fox: 18, hedgehog: 16, bear: 16, flamingo: 16, puppy: 18, pony: 16,
+  panda: 16, giraffe: 14, elephant: 12, owl: 14, squirrel: 18, frog: 18 };
 let mobs = [], mobGroups = [];
 const friends = new Set();
 const friendHeartMat = new THREE.MeshLambertMaterial({ color: 0xff6fae, emissive: 0x99204f });
@@ -300,10 +413,15 @@ function spawnMobs() {
   addMob('sheep', CX + 6, CZ - 6);
   addMob('piglet', CX - 6, CZ - 4);
   addMob('puppy', CX - 3, CZ + 6);
-  villages.forEach((v, vi) => { for (let k = 0; k < 5; k++) { const a = k * 1.25 + vi; addMob('villager', Math.round(v.x + Math.cos(a) * 6), Math.round(v.z + Math.sin(a) * 6), 0, { home: v }); } addMob(['puppy', 'cat', 'pony'][vi % 3], v.x + 3, v.z + 7); });
+  villages.forEach((v, vi) => { for (let k = 0; k < 5; k++) { const a = k * 1.25 + vi; addMob('villager', Math.round(v.x + Math.cos(a) * 6), Math.round(v.z + Math.sin(a) * 6), 0, { home: v }); } addMob(['puppy', 'cat', 'pony'][vi % 3], v.x + 3, v.z + 7);
+    // a little farm: two cows and a hen with her chicks
+    addMob('cow', v.x - 15, v.z + 4, 0, { home: v }); addMob('cow', v.x - 13, v.z - 6, 0, { home: v });
+    const hen = addMob('hen', v.x + 7, v.z - 4, 0, { home: v });
+    for (let c = 0; c < 3; c++) addMob('chick', v.x + 7, v.z - 4, 0, { mother: hen });
+  });
   const count = {};
   let k = 0;
-  while (mobs.length < 300 && k < 40000) {
+  while (mobs.length < 420 && k < 60000) {
     k++;
     const x = 3 + Math.floor(hash(k, 7, 31) * (SX - 6)), z = 3 + Math.floor(hash(k, 9, 33) * (SZ - 6));
     const bi = biomeMaps[0][x + z * SX], list = SPAWN[bi];
@@ -313,6 +431,7 @@ function spawnMobs() {
     const sy = withDim(0, () => surfaceY(x, z)), below = worlds[0][I(x, sy - 1, z)];
     if (worlds[0][I(x, sy, z)] === WATER || below === LEAVES || below === PINE || below === PINKLEAVES || below === CACTUS) continue;
     if (type === 'flamingo' && below !== SAND) continue;
+    if (type === 'frog' && ![[3, 0], [-3, 0], [0, 3], [0, -3]].some(([dx, dz]) => worlds[0][I(x + dx, SEA, z + dz)] === WATER)) continue;
     if (nearVillage(x, z, 2) || mobs.some(m => Math.abs(m.e.p.x - x) + Math.abs(m.e.p.z - z) < 5)) continue;
     count[type] = (count[type] || 0) + 1;
     addMob(type, x, z, 0, { variant: bi === SNOWY ? (type === 'fox' ? 'arctic' : 'polar') : '' });
@@ -346,13 +465,17 @@ function spawnDucks() {
   });
 }
 function spawnCastleMobs() {
-  [[CX - 40, CZ + 70, 'unicorn'], [CX + 42, CZ + 74, 'unicorn'], [CX - 70, CZ - 10, 'unicorn'], [CX + 70, CZ + 6, 'unicorn'], [CX - 60, CZ - 50, 'pony'], [CX + 60, CZ - 52, 'pony'],
-   [CX - 50, CZ - 60, 'sheep'], [CX + 52, CZ - 56, 'sheep'], [CX - 8, CZ + 12, 'cat'], [CX + 9, CZ + 16, 'puppy'], [CX - 15, CZ + 22, 'bunny'],
-   [CX + 48, CZ + 30, 'flamingo'], [CX - 48, CZ + 28, 'piglet']].forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
-  addMob('bunny', CX + 4, CZ - 8, D_CASTLE).e.p.y = KH + 1.01;
-  const mom = addMob('duck', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
+  [[CX - 50, CZ + 110, 'unicorn'], [CX + 52, CZ + 114, 'unicorn'], [CX - 110, CZ - 10, 'unicorn'], [CX + 110, CZ + 6, 'unicorn'], [CX - 80, CZ - 70, 'pony'], [CX + 80, CZ - 72, 'pony'],
+   [CX - 70, CZ - 80, 'sheep'], [CX + 72, CZ - 76, 'sheep'], [CX + 70, CZ + 70, 'giraffe'], [CX - 72, CZ + 72, 'elephant'], [CX - 90, CZ + 40, 'panda'],
+   [CX - 8, CZ + 10, 'cat'], [CX + 9, CZ + 24, 'puppy'], [CX - 12, CZ + 26, 'bunny'], [CX + 62, CZ + 30, 'flamingo'], [CX - 62, CZ + 28, 'piglet'],
+   [CX - 26, CZ + 10, 'pony'], [CX - 26, CZ + 15, 'pony'], [CX - 26, CZ + 19, 'pony'], [CX - 26, CZ - 16, 'owl'], [CX + 26, CZ - 15, 'squirrel'], [CX + 7, CZ + 16, 'frog']]
+    .forEach(([x, z, t]) => addMob(t, x, z, D_CASTLE));
+  addMob('bunny', CX + 4, CZ - 12, D_CASTLE).e.p.y = KH + 1.01;
+  const hen = addMob('hen', CX - 10, CZ + 30, D_CASTLE);
+  for (let i = 0; i < 3; i++) addMob('chick', CX - 10, CZ + 30, D_CASTLE, { mother: hen });
+  const mom = addMob('duck', CX + 50, CZ, D_CASTLE, { breed: DUCK_BREEDS[2] });
   mom.e.p.y = KH + 0.4;
-  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 39, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 39.5, KH + 0.4, CZ + 1 + i * 0.6); }
+  for (let i = 0; i < 3; i++) { const b = addMob('duckling', CX + 50, CZ, D_CASTLE, { breed: DUCK_BREEDS[2], mother: mom }); b.e.p.set(CX + 50.5, KH + 0.4, CZ + 1 + i * 0.6); }
 }
 function bringToPlayer(m) {
   const a = Math.random() * Math.PI * 2, r = 1.5 + Math.random();

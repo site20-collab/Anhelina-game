@@ -151,10 +151,10 @@ function buildHouse() {
 }
 
 // ---------- villages ----------
-const VILLAGE_NAMES = ['Ромашкове', 'Сонячне', 'Яблунівка', 'Медове', 'Зірочка', 'Веселкове'];
+const VILLAGE_NAMES = ['Ромашкове', 'Сонячне', 'Яблунівка', 'Медове', 'Зірочка', 'Веселкове', 'Калинівка', 'Барвінкове'];
 const VR = 22;
 const villages = VILLAGE_NAMES.map((name, i) => {
-  const a = i / VILLAGE_NAMES.length * Math.PI * 2 + 0.35, r = i % 2 ? 178 : 134;
+  const a = i / VILLAGE_NAMES.length * Math.PI * 2 + 0.35, r = i % 2 ? 228 : 168;
   return { name, x: Math.round(CX + Math.cos(a) * r), z: Math.round(CZ + Math.sin(a) * r), h: 0 };
 });
 function computeVillageHeights() {
@@ -177,6 +177,7 @@ const villageAt = (x, z) => villages.find(v => Math.hypot(x - v.x, z - v.z) < VR
 const VSTYLE = {
   [MEADOW]: { wall: PLANKS, roof: BRICK }, [FOREST]: { wall: LOG, roof: BRICK }, [DESERT]: { wall: SANDSTONE, roof: W_ORANGE },
   [SNOWY]: { wall: LOG, roof: SNOW }, [CANDYLAND]: { wall: W_WHITE, roof: ROOF },
+  [SAVANNA]: { wall: SANDSTONE, roof: DRYGRASS }, [BAMBOOB]: { wall: PLANKS, roof: W_GREEN },
 };
 function buildCottage(cx, h, cz, v, st, k) {
   const w = k % 2 ? 3 : 2, d = 2;
@@ -238,6 +239,7 @@ function addPlaceLabels() {
   clearLabels();
   addLabel(D_MAIN, 'Будиночок Ангеліни', HOUSE.x0 - 0.5, HOUSE.h + 9, CZ + 1.5, 1.7);
   villages.forEach(v => addLabel(D_MAIN, `Село ${v.name}`, v.x + .5, v.h + 7.5, v.z + .5, 2));
+  addCastleLabels();
 }
 
 function playerFurniture() {
